@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="548" height="475" viewBox="0 0 548 475" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif">
+<!-- 三组概念不对等：代码所在目录 × 执行所在的域 -->
+<rect x="0" y="0" width="548" height="475" fill="#FFFFFF"/>
+
+<!-- 列标题 -->
+<text x="195" y="24" font-size="15" font-weight="bold" fill="#000000" text-anchor="middle">在实时域执行</text>
+<text x="432" y="24" font-size="15" font-weight="bold" fill="#000000" text-anchor="middle">在非实时域执行</text>
+
+<!-- 行标题 -->
+<text x="40" y="112" font-size="15" font-weight="bold" fill="#000000" text-anchor="middle">EVL</text>
+<text x="40" y="132" font-size="13" fill="#333333" text-anchor="middle">代码</text>
+<text x="40" y="272" font-size="15" font-weight="bold" fill="#000000" text-anchor="middle">Linux</text>
+<text x="40" y="292" font-size="13" fill="#333333" text-anchor="middle">代码</text>
+<text x="40" y="421" font-size="15" font-weight="bold" fill="#000000" text-anchor="middle">数据</text>
+
+<!-- EVL × 实时 -->
+<rect x="80" y="40" width="230" height="150" rx="6" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.4"/>
+<text x="96" y="72" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">evl_schedule()</text>
+<text x="96" y="94" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">xbuf_oob_read()</text>
+<rect x="94" y="150" width="76" height="26" rx="13" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="132" y="168" font-size="13" font-weight="bold" fill="#0072B2" text-anchor="middle">需要可信</text>
+
+<!-- EVL × 非实时 -->
+<rect x="318" y="40" width="228" height="150" rx="6" fill="#FBEBE1" stroke="#D55E00" stroke-width="1.4"/>
+<text x="334" y="72" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">xbuf_read()</text>
+<text x="334" y="94" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">xbuf_write()</text>
+<text x="334" y="116" font-size="13.5" fill="#000000">factory 的 sysfs show</text>
+<rect x="332" y="150" width="89" height="26" rx="13" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="376.5" y="168" font-size="13" font-weight="bold" fill="#D55E00" text-anchor="middle">不需要可信</text>
+
+<!-- Linux × 实时 -->
+<rect x="80" y="200" width="230" height="150" rx="6" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.4"/>
+<text x="96" y="232" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">handle_irq_pipelined()</text>
+<text x="96" y="254" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">set_next_event()</text>
+<text x="96" y="276" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">raw_copy_to_user()</text>
+<rect x="94" y="310" width="141" height="26" rx="13" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="164.5" y="328" font-size="13" font-weight="bold" fill="#0072B2" text-anchor="middle">需要可信（信任基）</text>
+
+<!-- Linux × 非实时 -->
+<rect x="318" y="200" width="228" height="150" rx="6" fill="#FBEBE1" stroke="#D55E00" stroke-width="1.4"/>
+<text x="334" y="232" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">kernel_write()</text>
+<text x="334" y="254" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">wake_up()</text>
+<text x="334" y="276" font-size="13.5" font-family="Consolas, Menlo, Courier New, monospace" fill="#000000">VFS</text>
+<rect x="332" y="310" width="63" height="26" rx="13" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="363.5" y="328" font-size="13" font-weight="bold" fill="#D55E00" text-anchor="middle">不可信</text>
+
+<!-- 数据 -->
+<rect x="80" y="366" width="466" height="100" rx="6" fill="#F2F2F2" stroke="#999999" stroke-width="1.2"/>
+<text x="96" y="392" font-size="13.5" font-weight="bold" fill="#000000">数据也不按目录划分</text>
+<text x="96" y="417" font-size="13" fill="#333333">原 xbuf 环的 fillsz、rdoff：EVL 的数据，却由 inband 直接写</text>
+<text x="96" y="442" font-size="13" fill="#333333">EVL 线程状态 oob_state：放在 Linux 的 thread_info 里</text>
+</svg>

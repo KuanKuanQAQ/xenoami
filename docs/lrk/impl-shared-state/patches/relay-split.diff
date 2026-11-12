@@ -1,0 +1,311 @@
+diff --git a/include/evl/work.h b/include/evl/work.h
+index c67d7f303e22..9712b25ea922 100644
+--- a/include/evl/work.h
++++ b/include/evl/work.h
+@@ -8,13 +8,25 @@
+ #define _EVL_WORK_H
+ 
+ #include <linux/irq_work.h>
++#include <linux/llist.h>
+ #include <linux/workqueue.h>
+ #include <evl/flag.h>
+ 
+ struct evl_element;
+ 
++/*
++ * Relay state of an evl_work on its way to the in-band stage, same
++ * protocol as IRQ_WORK_PENDING/IRQ_WORK_BUSY: PENDING is set while
++ * the work sits on a per-CPU relay list, BUSY until the relay
++ * handler is done with it.
++ */
++#define EVL_WORK_PENDING	BIT(0)
++#define EVL_WORK_BUSY		BIT(1)
++#define EVL_WORK_CLAIMED	(EVL_WORK_PENDING|EVL_WORK_BUSY)
++
+ struct evl_work {
+-	struct irq_work irq_work;
++	struct llist_node relay_node; /* on per-CPU relay list */
++	atomic_t relay_flags;	      /* EVL_WORK_PENDING|BUSY */
+ 	struct work_struct wq_work;
+ 	struct workqueue_struct *wq;
+ 	union {
+@@ -26,7 +38,7 @@ struct evl_work {
+ 
+ #define EVL_DEFINE_WORK(__work, __handler)				\
+ 	struct evl_work __work = {					\
+-		.irq_work = IRQ_WORK_INIT(__evl_do_irq_work),		\
++		.relay_flags = ATOMIC_INIT(0),				\
+ 		.wq_work = __WORK_INITIALIZER((__work).wq_work,		\
+ 					__evl_do_work),			\
+ 		.wq = NULL,						\
+@@ -43,7 +55,7 @@ struct evl_sync_work {
+ #define EVL_DEFINE_SYNC_WORK(__work, __handler)				\
+ 	struct evl_sync_work __work = {					\
+ 		.work = {						\
+-			.irq_work = IRQ_WORK_INIT(__evl_do_irq_work),	\
++			.relay_flags = ATOMIC_INIT(0),			\
+ 			.wq_work = __WORK_INITIALIZER((__work).work.wq_work, \
+ 						__evl_do_sync_work),	\
+ 			.wq = NULL,					\
+@@ -72,17 +84,19 @@ static inline bool evl_call_inband(struct evl_work *work)
+ 	return evl_call_inband_from(work, system_wq);
+ }
+ 
++void evl_sync_relay(struct evl_work *work);
++
+ static inline
+ void evl_flush_work(struct evl_work *work)
+ {
+-	irq_work_sync(&work->irq_work);
++	evl_sync_relay(work);
+ 	flush_work(&work->wq_work);
+ }
+ 
+ static inline
+ void evl_cancel_work(struct evl_work *work)
+ {
+-	irq_work_sync(&work->irq_work);
++	evl_sync_relay(work);
+ 	cancel_work_sync(&work->wq_work);
+ }
+ 
+@@ -101,8 +115,10 @@ void evl_flush_sync_work(struct evl_sync_work *sync_work)
+ 	evl_flush_work(&sync_work->work);
+ }
+ 
+-void __evl_do_irq_work(struct irq_work *irq_work);
+ void __evl_do_work(struct work_struct *wq_work);
+ void __evl_do_sync_work(struct work_struct *wq_work);
+ 
++int evl_init_relay(void);
++void evl_cleanup_relay(void);
++
+ #endif /* !_EVL_WORK_H */
+diff --git a/kernel/evl/init.c b/kernel/evl/init.c
+index 61b12e1e6fae..3a0ca94a5118 100644
+--- a/kernel/evl/init.c
++++ b/kernel/evl/init.c
+@@ -17,6 +17,7 @@
+ #include <evl/control.h>
+ #include <evl/random.h>
+ #include <evl/net.h>
++#include <evl/work.h>
+ #include <evl/lkl.h>
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/evl.h>
+@@ -89,10 +90,14 @@ static __init int init_core(void)
+ 
+ 	enable_oob_stage("EVL");
+ 
+-	ret = evl_init_memory();
++	ret = evl_init_relay();
+ 	if (ret)
+ 		goto cleanup_stage;
+ 
++	ret = evl_init_memory();
++	if (ret)
++		goto cleanup_relay;
++
+ 	evl_init_core_ns(&evl_core_ns);
+ 
+ 	ret = evl_early_init_factories();
+@@ -156,6 +161,8 @@ static __init int init_core(void)
+ 	evl_early_cleanup_factories();
+ cleanup_memory:
+ 	evl_cleanup_memory();
++cleanup_relay:
++	evl_cleanup_relay();
+ cleanup_stage:
+ 	disable_oob_stage();
+ 	set_evl_state(EVL_STATE_STOPPED);
+diff --git a/kernel/evl/work.c b/kernel/evl/work.c
+index 0dfa97beffcf..4642ce65275a 100644
+--- a/kernel/evl/work.c
++++ b/kernel/evl/work.c
+@@ -4,8 +4,23 @@
+  * Copyright (C) 2020 Philippe Gerum  <rpm@xenomai.org>
+  */
+ 
++#include <linux/interrupt.h>
++#include <linux/irqdomain.h>
++#include <linux/irq_pipeline.h>
++#include <linux/percpu.h>
+ #include <evl/work.h>
+ 
++/*
++ * Out-of-band to in-band relay. Instead of borrowing the in-band
++ * irq_work queue, which the rest of the kernel shares, EVL keeps its
++ * own per-CPU list of pending works and a synthetic IRQ to kick the
++ * in-band stage. The only in-band state the oob side touches is the
++ * bit of our synthetic IRQ in the in-band interrupt log.
++ */
++static DEFINE_PER_CPU(struct llist_head, evl_relay_list);
++
++static unsigned int evl_relay_sirq;
++
+ void __evl_do_work(struct work_struct *wq_work)
+ {
+ 	struct evl_work *work;
+@@ -34,23 +49,101 @@ void __evl_do_sync_work(struct work_struct *wq_work)
+ }
+ EXPORT_SYMBOL_GPL(__evl_do_sync_work);
+ 
+-void __evl_do_irq_work(struct irq_work *irq_work)
++static void do_relay_work(struct evl_work *work) /* in-band */
+ {
+ 	struct evl_element *e;
+-	struct evl_work *work;
+ 
+-	work = container_of(irq_work, struct evl_work, irq_work);
+ 	e = work->element;	/* See comment in __evl_do_work(). */
+ 
+ 	if (!queue_work(work->wq, &work->wq_work) && e)
+ 		evl_put_element(e);
+ }
+-EXPORT_SYMBOL_GPL(__evl_do_irq_work);
++
++static void run_relay_work(struct evl_work *work) /* in-band */
++{
++	int flags;
++
++	/*
++	 * Clear PENDING, the work may be queued again from now on.
++	 * PENDING acts as a lock we own, so no atomic op is needed
++	 * (see irq_work_single()).
++	 */
++	flags = atomic_read(&work->relay_flags);
++	flags &= ~EVL_WORK_PENDING;
++	atomic_set(&work->relay_flags, flags);
++
++	/* Pairs with atomic_fetch_or() in claim_relay(). */
++	smp_mb();
++
++	do_relay_work(work);
++
++	/*
++	 * Clear BUSY, unless someone claimed the work again
++	 * meanwhile.
++	 */
++	(void)atomic_cmpxchg(&work->relay_flags, flags,
++			flags & ~EVL_WORK_BUSY);
++}
++
++static irqreturn_t relay_interrupt(int sirq, void *dev_id) /* in-band */
++{
++	struct llist_head *list = dev_id;
++	struct evl_work *work, *tmp;
++	struct llist_node *node;
++
++	node = llist_del_all(list);
++	llist_for_each_entry_safe(work, tmp, node, relay_node)
++		run_relay_work(work);
++
++	return IRQ_HANDLED;
++}
++
++static bool claim_relay(struct evl_work *work) /* oob or in-band */
++{
++	int oflags;
++
++	/* Same as irq_work_claim(). */
++	oflags = atomic_fetch_or(EVL_WORK_CLAIMED, &work->relay_flags);
++
++	return !(oflags & EVL_WORK_PENDING);
++}
++
++static void queue_relay(struct evl_work *work) /* oob or in-band */
++{
++	unsigned long flags;
++
++	/*
++	 * Hard irqs off: we must not migrate between picking the
++	 * per-CPU list and posting the IRQ, and irq_post_inband()
++	 * requires it anyway. Same logic as irq_local_work_raise().
++	 */
++	flags = hard_local_irq_save();
++
++	if (llist_add(&work->relay_node, this_cpu_ptr(&evl_relay_list))) {
++		irq_post_inband(evl_relay_sirq);
++		if (running_inband() &&
++			!hard_irqs_disabled_flags(flags) && !irqs_disabled())
++			sync_current_irq_stage();
++	}
++
++	hard_local_irq_restore(flags);
++}
++
++void evl_sync_relay(struct evl_work *work) /* in-band */
++{
++	lockdep_assert_irqs_enabled();
++	might_sleep();
++
++	/* Same as irq_work_sync() for archs with a work interrupt. */
++	while (atomic_read(&work->relay_flags) & EVL_WORK_BUSY)
++		cpu_relax();
++}
++EXPORT_SYMBOL_GPL(evl_sync_relay);
+ 
+ void evl_init_work(struct evl_work *work,
+ 		void (*handler)(struct evl_work *work))
+ {
+-	init_irq_work(&work->irq_work, __evl_do_irq_work);
++	atomic_set(&work->relay_flags, 0);
+ 	INIT_WORK(&work->wq_work, __evl_do_work);
+ 	work->handler_noreturn = (typeof(work->handler_noreturn))handler;
+ 	work->element = NULL;
+@@ -71,7 +164,7 @@ void evl_init_sync_work(struct evl_sync_work *sync_work,
+ {
+ 	struct evl_work *work = &sync_work->work;
+ 
+-	init_irq_work(&work->irq_work, __evl_do_irq_work);
++	atomic_set(&work->relay_flags, 0);
+ 	INIT_WORK(&work->wq_work, __evl_do_sync_work);
+ 	work->handler = (typeof(work->handler))handler;
+ 	/*
+@@ -98,12 +191,14 @@ bool evl_call_inband_from(struct evl_work *work,
+ 	if (e)
+ 		evl_get_element(e);
+ 
+-	if (!irq_work_queue(&work->irq_work)) {
++	if (!claim_relay(work)) {
+ 		if (e)
+ 			evl_put_element(e);
+ 		return false;
+ 	}
+ 
++	queue_relay(work);
++
+ 	return true;
+ }
+ EXPORT_SYMBOL_GPL(evl_call_inband_from);
+@@ -127,3 +222,30 @@ int evl_call_inband_sync_from(struct evl_sync_work *sync_work,
+ 	return evl_wait_flag(&sync_work->done) ?: sync_work->result;
+ }
+ EXPORT_SYMBOL_GPL(evl_call_inband_sync_from);
++
++int __init evl_init_relay(void)
++{
++	int sirq, ret;
++
++	sirq = irq_create_direct_mapping(synthetic_irq_domain);
++	if (sirq == 0)
++		return -EAGAIN;
++
++	ret = __request_percpu_irq(sirq, relay_interrupt,
++				IRQF_NO_THREAD, "EVL relay",
++				&evl_relay_list);
++	if (ret) {
++		irq_dispose_mapping(sirq);
++		return ret;
++	}
++
++	evl_relay_sirq = sirq;
++
++	return 0;
++}
++
++void __init evl_cleanup_relay(void)
++{
++	free_percpu_irq(evl_relay_sirq, &evl_relay_list);
++	irq_dispose_mapping(evl_relay_sirq);
++}

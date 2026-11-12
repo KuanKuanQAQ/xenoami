@@ -1,0 +1,1483 @@
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index c2ca18eb8d0c..c9300b7e4d33 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -82,6 +82,7 @@ static int setfl(int fd, struct file * filp, unsigned int arg)
+ 	spin_lock(&filp->f_lock);
+ 	filp->f_flags = (arg & SETFL_MASK) | (filp->f_flags & ~SETFL_MASK);
+ 	filp->f_iocb_flags = iocb_flags(filp);
++	handle_inband_fflags_change(filp);
+ 	spin_unlock(&filp->f_lock);
+ 
+  out:
+diff --git a/fs/ioctl.c b/fs/ioctl.c
+index 7234773e7b1d..24ee4e19e2a4 100644
+--- a/fs/ioctl.c
++++ b/fs/ioctl.c
+@@ -357,6 +357,7 @@ static int ioctl_fionbio(struct file *filp, int __user *argp)
+ 		filp->f_flags |= flag;
+ 	else
+ 		filp->f_flags &= ~flag;
++	handle_inband_fflags_change(filp);
+ 	spin_unlock(&filp->f_lock);
+ 	return error;
+ }
+diff --git a/include/dovetail/fs.h b/include/dovetail/fs.h
+index b3d63dee2305..f7b873025603 100644
+--- a/include/dovetail/fs.h
++++ b/include/dovetail/fs.h
+@@ -28,6 +28,15 @@ static inline void init_oob_fstate(struct oob_file_state *state)
+ 	state->data = NULL;
+ }
+ 
++struct file;
++
++/*
++ * Called in-band with filp->f_lock held each time the status flags
++ * of @filp change after open, so that a companion core may mirror
++ * them. Weak default does nothing.
++ */
++void handle_inband_fflags_change(struct file *filp);
++
+ #else  /* !CONFIG_DOVETAIL */
+ 
+ struct oob_file_state {
+@@ -36,6 +45,11 @@ struct oob_file_state {
+ static inline void init_oob_fstate(struct oob_file_state *state)
+ { }
+ 
++struct file;
++
++static inline void handle_inband_fflags_change(struct file *filp)
++{ }
++
+ struct irq_work;
+ 
+ static inline void __schedule_inband_fput(struct irq_work *irq_work)
+diff --git a/include/evl/file.h b/include/evl/file.h
+index aa8aec01ea2f..f3f3025dbac9 100644
+--- a/include/evl/file.h
++++ b/include/evl/file.h
+@@ -20,6 +20,7 @@ struct evl_file {
+ 	struct evl_crossing crossing;
+ 	struct list_head watchpoints; /* watchpoint->node.next */
+ 	hard_spinlock_t lock;	      /* guards ->watchpoints */
++	bool nonblock;		      /* mirrors O_NONBLOCK in filp->f_flags */
+ };
+ 
+ struct evl_file_binding {
+@@ -27,6 +28,15 @@ struct evl_file_binding {
+ 	struct evl_element *element;
+ };
+ 
++/*
++ * Out-of-band code reads the O_NONBLOCK mirror instead of
++ * filp->f_flags, which the in-band side may update at any time.
++ */
++static inline bool evl_file_nonblock(struct evl_file *efilp)
++{
++	return READ_ONCE(efilp->nonblock);
++}
++
+ int evl_open_file(struct evl_file *efilp,
+ 		struct file *filp);
+ 
+diff --git a/include/evl/work.h b/include/evl/work.h
+index c67d7f303e22..9712b25ea922 100644
+--- a/include/evl/work.h
++++ b/include/evl/work.h
+@@ -8,13 +8,25 @@
+ #define _EVL_WORK_H
+ 
+ #include <linux/irq_work.h>
++#include <linux/llist.h>
+ #include <linux/workqueue.h>
+ #include <evl/flag.h>
+ 
+ struct evl_element;
+ 
++/*
++ * Relay state of an evl_work on its way to the in-band stage, same
++ * protocol as IRQ_WORK_PENDING/IRQ_WORK_BUSY: PENDING is set while
++ * the work sits on a per-CPU relay list, BUSY until the relay
++ * handler is done with it.
++ */
++#define EVL_WORK_PENDING	BIT(0)
++#define EVL_WORK_BUSY		BIT(1)
++#define EVL_WORK_CLAIMED	(EVL_WORK_PENDING|EVL_WORK_BUSY)
++
+ struct evl_work {
+-	struct irq_work irq_work;
++	struct llist_node relay_node; /* on per-CPU relay list */
++	atomic_t relay_flags;	      /* EVL_WORK_PENDING|BUSY */
+ 	struct work_struct wq_work;
+ 	struct workqueue_struct *wq;
+ 	union {
+@@ -26,7 +38,7 @@ struct evl_work {
+ 
+ #define EVL_DEFINE_WORK(__work, __handler)				\
+ 	struct evl_work __work = {					\
+-		.irq_work = IRQ_WORK_INIT(__evl_do_irq_work),		\
++		.relay_flags = ATOMIC_INIT(0),				\
+ 		.wq_work = __WORK_INITIALIZER((__work).wq_work,		\
+ 					__evl_do_work),			\
+ 		.wq = NULL,						\
+@@ -43,7 +55,7 @@ struct evl_sync_work {
+ #define EVL_DEFINE_SYNC_WORK(__work, __handler)				\
+ 	struct evl_sync_work __work = {					\
+ 		.work = {						\
+-			.irq_work = IRQ_WORK_INIT(__evl_do_irq_work),	\
++			.relay_flags = ATOMIC_INIT(0),			\
+ 			.wq_work = __WORK_INITIALIZER((__work).work.wq_work, \
+ 						__evl_do_sync_work),	\
+ 			.wq = NULL,					\
+@@ -72,17 +84,19 @@ static inline bool evl_call_inband(struct evl_work *work)
+ 	return evl_call_inband_from(work, system_wq);
+ }
+ 
++void evl_sync_relay(struct evl_work *work);
++
+ static inline
+ void evl_flush_work(struct evl_work *work)
+ {
+-	irq_work_sync(&work->irq_work);
++	evl_sync_relay(work);
+ 	flush_work(&work->wq_work);
+ }
+ 
+ static inline
+ void evl_cancel_work(struct evl_work *work)
+ {
+-	irq_work_sync(&work->irq_work);
++	evl_sync_relay(work);
+ 	cancel_work_sync(&work->wq_work);
+ }
+ 
+@@ -101,8 +115,10 @@ void evl_flush_sync_work(struct evl_sync_work *sync_work)
+ 	evl_flush_work(&sync_work->work);
+ }
+ 
+-void __evl_do_irq_work(struct irq_work *irq_work);
+ void __evl_do_work(struct work_struct *wq_work);
+ void __evl_do_sync_work(struct work_struct *wq_work);
+ 
++int evl_init_relay(void);
++void evl_cleanup_relay(void);
++
+ #endif /* !_EVL_WORK_H */
+diff --git a/kernel/dovetail.c b/kernel/dovetail.c
+index 02c8b2ee28e2..fd25b2ddc267 100644
+--- a/kernel/dovetail.c
++++ b/kernel/dovetail.c
+@@ -7,6 +7,7 @@
+ #include <linux/sched/signal.h>
+ #include <linux/irq_pipeline.h>
+ #include <linux/dovetail.h>
++#include <linux/fs.h>
+ #include <linux/prctl.h>
+ #include <asm/unistd.h>
+ #include <asm/syscall.h>
+@@ -82,6 +83,10 @@ void __weak handle_oob_mayday(struct pt_regs *regs)
+ {
+ }
+ 
++void __weak handle_inband_fflags_change(struct file *filp)
++{
++}
++
+ static inline
+ void call_mayday(struct thread_info *ti, struct pt_regs *regs)
+ {
+diff --git a/kernel/evl/Makefile b/kernel/evl/Makefile
+index d3bdb5699d72..7e4fcd960d4d 100644
+--- a/kernel/evl/Makefile
++++ b/kernel/evl/Makefile
+@@ -13,6 +13,7 @@ evl-y :=		\
+ 	observable.o	\
+ 	poll.o		\
+ 	proxy.o		\
++	proxy_bridge.o	\
+ 	random.o	\
+ 	sem.o		\
+ 	stax.o		\
+diff --git a/kernel/evl/file.c b/kernel/evl/file.c
+index 81284dd22073..a3429a8c382c 100644
+--- a/kernel/evl/file.c
++++ b/kernel/evl/file.c
+@@ -62,11 +62,25 @@ int evl_open_file(struct evl_file *efilp, struct file *filp)
+ 	evl_init_crossing(&efilp->crossing);
+ 	INIT_LIST_HEAD(&efilp->watchpoints);
+ 	raw_spin_lock_init(&efilp->lock);
++	efilp->nonblock = !!(filp->f_flags & O_NONBLOCK);
+ 
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(evl_open_file);
+ 
++/*
++ * Dovetail hook, called in-band with filp->f_lock held after
++ * fcntl(F_SETFL) or ioctl(FIONBIO) changed filp->f_flags. f_lock
++ * serializes concurrent updates of the mirror.
++ */
++void handle_inband_fflags_change(struct file *filp)
++{
++	struct evl_file *efilp = filp->f_oob_state.data;
++
++	if (efilp)
++		WRITE_ONCE(efilp->nonblock, !!(filp->f_flags & O_NONBLOCK));
++}
++
+ /**
+  * evl_release_file - Drop an oob-capable file
+  *
+diff --git a/kernel/evl/init.c b/kernel/evl/init.c
+index 61b12e1e6fae..3a0ca94a5118 100644
+--- a/kernel/evl/init.c
++++ b/kernel/evl/init.c
+@@ -17,6 +17,7 @@
+ #include <evl/control.h>
+ #include <evl/random.h>
+ #include <evl/net.h>
++#include <evl/work.h>
+ #include <evl/lkl.h>
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/evl.h>
+@@ -89,10 +90,14 @@ static __init int init_core(void)
+ 
+ 	enable_oob_stage("EVL");
+ 
+-	ret = evl_init_memory();
++	ret = evl_init_relay();
+ 	if (ret)
+ 		goto cleanup_stage;
+ 
++	ret = evl_init_memory();
++	if (ret)
++		goto cleanup_relay;
++
+ 	evl_init_core_ns(&evl_core_ns);
+ 
+ 	ret = evl_early_init_factories();
+@@ -156,6 +161,8 @@ static __init int init_core(void)
+ 	evl_early_cleanup_factories();
+ cleanup_memory:
+ 	evl_cleanup_memory();
++cleanup_relay:
++	evl_cleanup_relay();
+ cleanup_stage:
+ 	disable_oob_stage();
+ 	set_evl_state(EVL_STATE_STOPPED);
+diff --git a/kernel/evl/proxy.c b/kernel/evl/proxy.c
+index 77d4f4c0ab85..f9d9ef690ff4 100644
+--- a/kernel/evl/proxy.c
++++ b/kernel/evl/proxy.c
+@@ -21,26 +21,31 @@
+ #include <evl/flag.h>
+ #include <evl/poll.h>
+ #include <uapi/evl/proxy-abi.h>
++#include "proxy_gate.h"
+ 
+ #define EVL_PROXY_CLONE_FLAGS	\
+ 	(EVL_CLONE_PUBLIC|EVL_CLONE_OUTPUT|EVL_CLONE_INPUT)
+ 
++/*
++ * EVL side of a ring. The relay worker's own state (its index into
++ * the ring, its mutex, the in-band wait queue) lives on the Linux
++ * side, in struct proxy_relay (proxy_bridge.c).
++ */
+ struct proxy_ring {
+ 	void *bufmem;
+ 	atomic_t fillsz;
+ 	int nesting;
+ 	unsigned int bufsz;
+-	unsigned int rdoff;
+-	unsigned int wroff;
++	union {			/* Index on the EVL side only. */
++		unsigned int wroff;	/* output ring: EVL writers */
++		unsigned int rdoff;	/* input ring: EVL readers */
++	};
+ 	unsigned int reserved;
+ 	unsigned int granularity;
+ 	struct evl_flag oob_wait;
+-	wait_queue_head_t inband_wait_r;
+-	wait_queue_head_t inband_wait_w;
+ 	struct evl_work relay_work;
+ 	hard_spinlock_t lock;
+ 	struct workqueue_struct *wq;
+-	struct mutex worker_lock;
+ };
+ 
+ struct proxy_out {		/* oob_write->write */
+@@ -55,9 +60,10 @@ struct proxy_in {		/* read->oob_read */
+ };
+ 
+ struct evl_proxy {
+-	struct file *filp;
++	struct file *filp;	/* Reference only, used by the bridge. */
+ 	struct proxy_out output;
+ 	struct proxy_in input;
++	struct proxy_bridge *bridge; /* Linux side, opaque. */
+ 	struct evl_element element;
+ 	struct evl_poll_head poll_head;
+ };
+@@ -72,74 +78,15 @@ static inline bool proxy_may_write(struct evl_proxy *proxy)
+ 	return !!(proxy->element.clone_flags & EVL_CLONE_OUTPUT);
+ }
+ 
+-static void relay_output(struct evl_proxy *proxy)
++/*
++ * O_NONBLOCK as seen from code which may run oob: read the EVL
++ * mirror instead of filp->f_flags.
++ */
++static inline bool proxy_nonblock(struct file *filp)
+ {
+-	struct proxy_ring *ring = &proxy->output.ring;
+-	unsigned int rdoff, count, len, n;
+-	struct file *filp = proxy->filp;
+-	loff_t pos, *ppos;
+-	ssize_t ret = 0;
+-
+-	mutex_lock(&ring->worker_lock);
+-
+-	count = atomic_read(&ring->fillsz);
+-	rdoff = ring->rdoff;
+-
+-	ppos = NULL;
+-	if (filp->f_mode & FMODE_ATOMIC_POS) {
+-		mutex_lock(&filp->f_pos_lock);
+-		ppos = &pos;
+-		pos = filp->f_pos;
+-	}
+-
+-	while (count > 0 && ret >= 0) {
+-		len = count;
+-		do {
+-			if (rdoff + len > ring->bufsz)
+-				n = ring->bufsz - rdoff;
+-			else
+-				n = len;
++	struct evl_file_binding *fbind = filp->private_data;
+ 
+-			if (ring->granularity > 0)
+-				n = min(n, ring->granularity);
+-
+-			ret = kernel_write(filp, ring->bufmem + rdoff, n, ppos);
+-			if (ret >= 0 && ppos)
+-				filp->f_pos = *ppos;
+-			len -= n;
+-			rdoff = (rdoff + n) % ring->bufsz;
+-		} while (len > 0 && ret > 0);
+-		/*
+-		 * On error, the portion we failed writing is
+-		 * lost. Fair enough.
+-		 */
+-		count = atomic_sub_return(count, &ring->fillsz);
+-	}
+-
+-	if (ppos)
+-		mutex_unlock(&filp->f_pos_lock);
+-
+-	ring->rdoff = rdoff;
+-
+-	mutex_unlock(&ring->worker_lock);
+-
+-	/*
+-	 * For proxies, writability means that all pending data was
+-	 * sent out without error.
+-	 */
+-	if (count == 0)
+-		evl_signal_poll_events(&proxy->poll_head, POLLOUT|POLLWRNORM);
+-
+-	/*
+-	 * Since we are running in-band, make sure to give precedence
+-	 * to oob waiters for wakeups.
+-	 */
+-	if (count < ring->bufsz) {
+-		evl_raise_flag(&ring->oob_wait); /* Reschedules. */
+-		wake_up(&ring->inband_wait_w);
+-	} else {
+-		evl_schedule();	/* Covers evl_signal_poll_events() */
+-	}
++	return evl_file_nonblock(&fbind->efile);
+ }
+ 
+ static void relay_output_work(struct evl_work *work)
+@@ -147,7 +94,7 @@ static void relay_output_work(struct evl_work *work)
+ 	struct evl_proxy *proxy =
+ 		container_of(work, struct evl_proxy, output.ring.relay_work);
+ 
+-	relay_output(proxy);
++	proxy_bridge_relay_output(proxy->bridge);
+ }
+ 
+ static bool can_write_buffer(struct proxy_ring *ring, size_t size)
+@@ -156,8 +103,13 @@ static bool can_write_buffer(struct proxy_ring *ring, size_t size)
+ 		ring->reserved + size <= ring->bufsz;
+ }
+ 
+-static ssize_t do_proxy_write(struct file *filp,
+-			const char __user *u_buf, size_t count)
++/*
++ * Gate (both stages): copy @count bytes from @u_buf into the output
++ * ring. *@kick is set when the ring went from empty to non-empty,
++ * in which case the caller must get the relay worker going.
++ */
++ssize_t proxy_gate_write(struct file *filp, const char __user *u_buf,
++			size_t count, bool *kick)
+ {
+ 	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+ 	struct proxy_ring *ring = &proxy->output.ring;
+@@ -166,6 +118,8 @@ static ssize_t do_proxy_write(struct file *filp,
+ 	ssize_t ret;
+ 	int xret;
+ 
++	*kick = false;
++
+ 	if (count == 0)
+ 		return 0;
+ 
+@@ -214,14 +168,8 @@ static ssize_t do_proxy_write(struct file *filp,
+ 		n = atomic_add_return(ring->reserved, &ring->fillsz);
+ 		rsvd = ring->reserved;
+ 		ring->reserved = 0;
+-		if (n == rsvd) { /* empty -> non-empty transition */
+-			if (running_inband()) {
+-				raw_spin_unlock_irqrestore(&ring->lock, flags);
+-				relay_output(proxy);
+-				return ret;
+-			}
+-			evl_call_inband_from(&ring->relay_work, ring->wq);
+-		}
++		if (n == rsvd) /* empty -> non-empty transition */
++			*kick = true;
+ 	}
+ out:
+ 	raw_spin_unlock_irqrestore(&ring->lock, flags);
+@@ -229,84 +177,20 @@ static ssize_t do_proxy_write(struct file *filp,
+ 	return ret;
+ }
+ 
+-static void relay_input(struct evl_proxy *proxy)
+-{
+-	struct proxy_in *in = &proxy->input;
+-	struct proxy_ring *ring = &in->ring;
+-	unsigned int wroff, count, len, n;
+-	struct file *filp = proxy->filp;
+-	bool exception = false;
+-	loff_t pos, *ppos;
+-	ssize_t ret = 0;
+-
+-	mutex_lock(&ring->worker_lock);
+-
+-	count = atomic_read(&in->reqsz);
+-	wroff = ring->wroff;
+-
+-	ppos = NULL;
+-	if (filp->f_mode & FMODE_ATOMIC_POS) {
+-		mutex_lock(&filp->f_pos_lock);
+-		ppos = &pos;
+-		pos = filp->f_pos;
+-	}
+-
+-	while (count > 0) {
+-		len = count;
+-		do {
+-			if (wroff + len > ring->bufsz)
+-				n = ring->bufsz - wroff;
+-			else
+-				n = len;
+-
+-			if (ring->granularity > 0)
+-				n = min(n, ring->granularity);
+-
+-			ret = kernel_read(filp, ring->bufmem + wroff, n, ppos);
+-			if (ret <= 0) {
+-				atomic_sub(count - len, &in->reqsz);
+-				if (ret)
+-					in->on_error = ret;
+-				else
+-					atomic_set(&in->on_eof, true);
+-				exception = true;
+-				goto done;
+-			}
+-
+-			if (ppos)
+-				filp->f_pos = *ppos;
+-
+-			atomic_add(ret, &ring->fillsz);
+-			len -= ret;
+-			wroff = (wroff + n) % ring->bufsz;
+-		} while (len > 0);
+-		count = atomic_sub_return(count, &in->reqsz);
+-	}
+-done:
+-	if (ppos)
+-		mutex_unlock(&filp->f_pos_lock);
+-
+-	ring->wroff = wroff;
+-
+-	mutex_unlock(&ring->worker_lock);
+-
+-	if (atomic_read(&ring->fillsz) > 0 || exception) {
+-		evl_signal_poll_events(&proxy->poll_head, POLLIN|POLLRDNORM);
+-		evl_raise_flag(&ring->oob_wait); /* Reschedules. */
+-		wake_up(&ring->inband_wait_r);
+-	}
+-}
+-
+ static void relay_input_work(struct evl_work *work)
+ {
+ 	struct evl_proxy *proxy =
+ 		container_of(work, struct evl_proxy, input.ring.relay_work);
+ 
+-	relay_input(proxy);
++	proxy_bridge_relay_input(proxy->bridge);
+ }
+ 
+-static ssize_t do_proxy_read(struct file *filp,
+-			char __user *u_buf, size_t count)
++/*
++ * Gate (both stages): copy up to @count bytes from the input ring to
++ * @u_buf. Zero means 'wait then try again'.
++ */
++ssize_t proxy_gate_read(struct file *filp, char __user *u_buf,
++			size_t count)
+ {
+ 	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+ 	struct proxy_in *in = &proxy->input;
+@@ -337,7 +221,7 @@ static ssize_t do_proxy_read(struct file *filp,
+ 		if (avail < len) {
+ 			raw_spin_unlock_irqrestore(&ring->lock, flags);
+ 
+-			if (avail > 0 && filp->f_flags & O_NONBLOCK) {
++			if (avail > 0 && proxy_nonblock(filp)) {
+ 				/* granularity may not be ^2. */
+ 				len = rounddown(avail, ring->granularity ?: 1);
+ 				if (len)
+@@ -400,14 +284,30 @@ static ssize_t proxy_oob_write(struct file *filp,
+ {
+ 	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+ 	struct proxy_ring *ring = &proxy->output.ring;
++	bool kick;
+ 	ssize_t ret;
+ 
+ 	if (!proxy_may_write(proxy))
+ 		return -ENXIO;
+ 
+ 	do {
+-		ret = do_proxy_write(filp, u_buf, count);
+-		if (ret != -EAGAIN || filp->f_flags & O_NONBLOCK)
++		ret = proxy_gate_write(filp, u_buf, count, &kick);
++		if (kick) {
++			/*
++			 * The ring went from empty to non-empty. A
++			 * non-EVL thread calling oob_write() gets here
++			 * in-band (evl_switch_oob() refuses it, the
++			 * call goes on in-band): relay synchronously
++			 * from its context then, as proxy_bridge_write()
++			 * does.
++			 */
++			if (running_inband()) {
++				proxy_bridge_relay_output(proxy->bridge);
++				return ret;
++			}
++			evl_call_inband_from(&ring->relay_work, ring->wq);
++		}
++		if (ret != -EAGAIN || proxy_nonblock(filp))
+ 			break;
+ 		ret = evl_wait_flag(&ring->oob_wait);
+ 	} while (!ret);
+@@ -431,8 +331,8 @@ static ssize_t proxy_oob_read(struct file *filp,
+ 		return 0;
+ 
+ 	for (;;) {
+-		ret = do_proxy_read(filp, u_buf, count);
+-		if (ret || filp->f_flags & O_NONBLOCK)
++		ret = proxy_gate_read(filp, u_buf, count);
++		if (ret || proxy_nonblock(filp))
+ 			break;
+ 		if (!request_done) {
+ 			atomic_add(count, &in->reqsz);
+@@ -481,119 +381,135 @@ static __poll_t proxy_oob_poll(struct file *filp,
+ 	}
+ 
+ 	/*
+-	 * If the proxied file implements an oob poll handler, collect
+-	 * the events pending there as well.
++	 * Readiness only depends on the rings: oob_read/oob_write
++	 * never reach the proxied file directly, data is always
++	 * relayed in-band by kernel_read/kernel_write. So we do not
++	 * collect events from the oob poll handler of the proxied
++	 * file, if any.
+ 	 */
+-	if (proxy->filp->f_op->oob_poll)
+-		ret |= proxy->filp->f_op->oob_poll(filp, wait);
+ 
+ 	return ret;
+ }
+ 
+-static ssize_t proxy_write(struct file *filp, const char __user *u_buf,
+-			size_t count, loff_t *ppos)
+-{
+-	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+-	struct proxy_ring *ring = &proxy->output.ring;
+-	ssize_t ret;
++/*
++ * Gates called by the Linux side (proxy_bridge.c), see proxy_gate.h.
++ * Each of them stands for the one or two statements the relay
++ * workers and the in-band file operations used to run directly on
++ * the EVL state. The sanity checks only warn for now.
++ */
+ 
+-	if (!proxy_may_write(proxy))
+-		return -ENXIO;
++struct proxy_bridge *proxy_gate_bridge(struct file *filp)
++{
++	return element_of(filp, struct evl_proxy)->bridge;
++}
+ 
+-	do {
+-		ret = do_proxy_write(filp, u_buf, count);
+-		if (ret != -EAGAIN || filp->f_flags & O_NONBLOCK)
+-			break;
+-		ret = wait_event_interruptible(ring->inband_wait_w,
+-					can_write_buffer(ring, count));
+-	} while (!ret);
++bool proxy_gate_can_write(struct evl_proxy *proxy, size_t size)
++{
++	return can_write_buffer(&proxy->output.ring, size);
++}
+ 
+-	return ret;
++unsigned int proxy_gate_out_fill(struct evl_proxy *proxy)
++{
++	return atomic_read(&proxy->output.ring.fillsz);
+ }
+ 
+-static ssize_t proxy_read(struct file *filp,
+-			char __user *u_buf, size_t count, loff_t *ppos)
++unsigned int proxy_gate_out_consume(struct evl_proxy *proxy,
++				unsigned int n)
+ {
+-	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+-	struct proxy_in *in = &proxy->input;
+-	bool request_done = false;
+-	ssize_t ret;
++	struct proxy_ring *ring = &proxy->output.ring;
+ 
+-	if (!proxy_may_read(proxy))
+-		return -ENXIO;
++	EVL_WARN_ON_ONCE(CORE, n > atomic_read(&ring->fillsz));
+ 
+-	if (count == 0)
+-		return 0;
++	return atomic_sub_return(n, &ring->fillsz);
++}
+ 
+-	for (;;) {
+-		ret = do_proxy_read(filp, u_buf, count);
+-		if (ret || filp->f_flags & O_NONBLOCK)
+-			break;
+-		if (!request_done) {
+-			atomic_add(count, &in->reqsz);
+-			request_done = true;
+-		}
+-		relay_input(proxy);
+-		if (atomic_cmpxchg(&in->on_eof, true, false)) {
+-			ret = 0;
+-			break;
+-		}
+-	}
++void proxy_gate_out_done(struct evl_proxy *proxy, unsigned int remaining)
++{
++	struct proxy_ring *ring = &proxy->output.ring;
+ 
+-	return ret;
++	/*
++	 * For proxies, writability means that all pending data was
++	 * sent out without error.
++	 */
++	if (remaining == 0)
++		evl_signal_poll_events(&proxy->poll_head, POLLOUT|POLLWRNORM);
++
++	if (remaining < ring->bufsz)
++		evl_raise_flag(&ring->oob_wait); /* Reschedules. */
++	else
++		evl_schedule();	/* Covers evl_signal_poll_events() */
+ }
+ 
+-static __poll_t proxy_poll(struct file *filp, poll_table *wait)
++unsigned int proxy_gate_in_fill(struct evl_proxy *proxy)
+ {
+-	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+-	struct proxy_ring *oring = &proxy->output.ring;
+-	struct proxy_ring *iring = &proxy->input.ring;
+-	__poll_t ret = 0;
++	return atomic_read(&proxy->input.ring.fillsz);
++}
+ 
+-	if (proxy_may_write(proxy)) {
+-		poll_wait(filp, &oring->inband_wait_w, wait);
+-		if (atomic_read(&oring->fillsz) < oring->bufsz)
+-			ret = POLLOUT|POLLWRNORM;
+-	}
++void proxy_gate_in_request(struct evl_proxy *proxy, unsigned int n)
++{
++	atomic_add(n, &proxy->input.reqsz);
++}
+ 
+-	if (proxy_may_read(proxy)) {
+-		poll_wait(filp, &iring->inband_wait_r, wait);
+-		if (atomic_read(&iring->fillsz) > 0)
+-			ret |= POLLIN|POLLRDNORM;
+-	}
++unsigned int proxy_gate_in_requested(struct evl_proxy *proxy)
++{
++	return atomic_read(&proxy->input.reqsz);
++}
+ 
+-	if (proxy->filp->f_op->poll)
+-		ret |= proxy->filp->f_op->poll(proxy->filp, wait);
++void proxy_gate_in_produce(struct evl_proxy *proxy, unsigned int n)
++{
++	struct proxy_ring *ring = &proxy->input.ring;
+ 
+-	return ret;
++	EVL_WARN_ON_ONCE(CORE, atomic_read(&ring->fillsz) + n > ring->bufsz);
++
++	atomic_add(n, &ring->fillsz);
+ }
+ 
+-static int proxy_mmap(struct file *filp, struct vm_area_struct *vma)
++unsigned int proxy_gate_in_fulfil(struct evl_proxy *proxy, unsigned int n)
+ {
+-	struct evl_proxy *proxy = element_of(filp, struct evl_proxy);
+-	struct file *mapfilp = proxy->filp;
+-	int ret;
++	struct proxy_in *in = &proxy->input;
+ 
+-	if (mapfilp->f_op->mmap == NULL)
+-		return -ENODEV;
++	EVL_WARN_ON_ONCE(CORE, n > atomic_read(&in->reqsz));
+ 
+-	vma->vm_file = get_file(mapfilp);
++	return atomic_sub_return(n, &in->reqsz);
++}
+ 
+-	/*
+-	 * Since the mapper element impersonates a different file, we
+-	 * need to swap references: if the mapping call fails, we have
+-	 * to drop the reference on the target file we just took on
+-	 * entry; if it succeeds, then we have to drop the reference
+-	 * on the mapper file do_mmap_pgoff() acquired before calling
+-	 * us.
+-	 */
+-	ret = call_mmap(mapfilp, vma);
++/* The relay worker got an error (@ret < 0) or EOF (@ret == 0). */
++void proxy_gate_in_stop(struct evl_proxy *proxy,
++			unsigned int fulfilled, ssize_t ret)
++{
++	struct proxy_in *in = &proxy->input;
++
++	EVL_WARN_ON_ONCE(CORE, ret > 0);
++	EVL_WARN_ON_ONCE(CORE, fulfilled > atomic_read(&in->reqsz));
++
++	atomic_sub(fulfilled, &in->reqsz);
+ 	if (ret)
+-		fput(mapfilp);
++		in->on_error = ret;
+ 	else
+-		fput(filp);
++		atomic_set(&in->on_eof, true);
++}
+ 
+-	return ret;
++/*
++ * The relay worker is done. Returns true if in-band readers should
++ * be woken up too, which the caller does after us so that oob
++ * waiters get precedence.
++ */
++bool proxy_gate_in_done(struct evl_proxy *proxy, bool exception)
++{
++	struct proxy_ring *ring = &proxy->input.ring;
++
++	if (atomic_read(&ring->fillsz) > 0 || exception) {
++		evl_signal_poll_events(&proxy->poll_head, POLLIN|POLLRDNORM);
++		evl_raise_flag(&ring->oob_wait); /* Reschedules. */
++		return true;
++	}
++
++	return false;
++}
++
++bool proxy_gate_in_take_eof(struct evl_proxy *proxy)
++{
++	return atomic_cmpxchg(&proxy->input.on_eof, true, false);
+ }
+ 
+ static int proxy_release(struct inode *inode, struct file *filp)
+@@ -615,10 +531,10 @@ static const struct file_operations proxy_fops = {
+ 	.oob_write	= proxy_oob_write,
+ 	.oob_read	= proxy_oob_read,
+ 	.oob_poll	= proxy_oob_poll,
+-	.write		= proxy_write,
+-	.read		= proxy_read,
+-	.poll		= proxy_poll,
+-	.mmap		= proxy_mmap,
++	.write		= proxy_bridge_write,
++	.read		= proxy_bridge_read,
++	.poll		= proxy_bridge_poll,
++	.mmap		= proxy_bridge_mmap,
+ };
+ 
+ static int init_ring(struct proxy_ring *ring,
+@@ -651,9 +567,6 @@ static int init_ring(struct proxy_ring *ring,
+ 			is_output ? relay_output_work : relay_input_work,
+ 			&proxy->element);
+ 	evl_init_flag(&ring->oob_wait);
+-	init_waitqueue_head(&ring->inband_wait_r);
+-	init_waitqueue_head(&ring->inband_wait_w);
+-	mutex_init(&ring->worker_lock);
+ 
+ 	return 0;
+ }
+@@ -742,8 +655,22 @@ proxy_factory_build(struct evl_factory *fac, const char __user *u_name,
+ 			goto fail_input_init;
+ 	}
+ 
++	proxy->bridge = proxy_bridge_create(proxy, filp,
++				clone_flags & EVL_CLONE_OUTPUT ?
++				proxy->output.ring.bufmem : NULL,
++				clone_flags & EVL_CLONE_INPUT ?
++				proxy->input.ring.bufmem : NULL,
++				bufsz, attrs.granularity);
++	if (proxy->bridge == NULL) {
++		ret = -ENOMEM;
++		goto fail_bridge;
++	}
++
+ 	return &proxy->element;
+ 
++fail_bridge:
++	if (clone_flags & EVL_CLONE_INPUT)
++		destroy_ring(&proxy->input.ring);
+ fail_input_init:
+ 	if (clone_flags & EVL_CLONE_OUTPUT)
+ 		destroy_ring(&proxy->output.ring);
+@@ -769,6 +696,8 @@ static void proxy_factory_dispose(struct evl_element *e)
+ 	if (proxy_may_read(proxy))
+ 		destroy_ring(&proxy->input.ring);
+ 
++	proxy_bridge_destroy(proxy->bridge);
++
+ 	fput(proxy->filp);
+ 
+ 	evl_destroy_element(&proxy->element);
+diff --git a/kernel/evl/work.c b/kernel/evl/work.c
+index 0dfa97beffcf..4642ce65275a 100644
+--- a/kernel/evl/work.c
++++ b/kernel/evl/work.c
+@@ -4,8 +4,23 @@
+  * Copyright (C) 2020 Philippe Gerum  <rpm@xenomai.org>
+  */
+ 
++#include <linux/interrupt.h>
++#include <linux/irqdomain.h>
++#include <linux/irq_pipeline.h>
++#include <linux/percpu.h>
+ #include <evl/work.h>
+ 
++/*
++ * Out-of-band to in-band relay. Instead of borrowing the in-band
++ * irq_work queue, which the rest of the kernel shares, EVL keeps its
++ * own per-CPU list of pending works and a synthetic IRQ to kick the
++ * in-band stage. The only in-band state the oob side touches is the
++ * bit of our synthetic IRQ in the in-band interrupt log.
++ */
++static DEFINE_PER_CPU(struct llist_head, evl_relay_list);
++
++static unsigned int evl_relay_sirq;
++
+ void __evl_do_work(struct work_struct *wq_work)
+ {
+ 	struct evl_work *work;
+@@ -34,23 +49,101 @@ void __evl_do_sync_work(struct work_struct *wq_work)
+ }
+ EXPORT_SYMBOL_GPL(__evl_do_sync_work);
+ 
+-void __evl_do_irq_work(struct irq_work *irq_work)
++static void do_relay_work(struct evl_work *work) /* in-band */
+ {
+ 	struct evl_element *e;
+-	struct evl_work *work;
+ 
+-	work = container_of(irq_work, struct evl_work, irq_work);
+ 	e = work->element;	/* See comment in __evl_do_work(). */
+ 
+ 	if (!queue_work(work->wq, &work->wq_work) && e)
+ 		evl_put_element(e);
+ }
+-EXPORT_SYMBOL_GPL(__evl_do_irq_work);
++
++static void run_relay_work(struct evl_work *work) /* in-band */
++{
++	int flags;
++
++	/*
++	 * Clear PENDING, the work may be queued again from now on.
++	 * PENDING acts as a lock we own, so no atomic op is needed
++	 * (see irq_work_single()).
++	 */
++	flags = atomic_read(&work->relay_flags);
++	flags &= ~EVL_WORK_PENDING;
++	atomic_set(&work->relay_flags, flags);
++
++	/* Pairs with atomic_fetch_or() in claim_relay(). */
++	smp_mb();
++
++	do_relay_work(work);
++
++	/*
++	 * Clear BUSY, unless someone claimed the work again
++	 * meanwhile.
++	 */
++	(void)atomic_cmpxchg(&work->relay_flags, flags,
++			flags & ~EVL_WORK_BUSY);
++}
++
++static irqreturn_t relay_interrupt(int sirq, void *dev_id) /* in-band */
++{
++	struct llist_head *list = dev_id;
++	struct evl_work *work, *tmp;
++	struct llist_node *node;
++
++	node = llist_del_all(list);
++	llist_for_each_entry_safe(work, tmp, node, relay_node)
++		run_relay_work(work);
++
++	return IRQ_HANDLED;
++}
++
++static bool claim_relay(struct evl_work *work) /* oob or in-band */
++{
++	int oflags;
++
++	/* Same as irq_work_claim(). */
++	oflags = atomic_fetch_or(EVL_WORK_CLAIMED, &work->relay_flags);
++
++	return !(oflags & EVL_WORK_PENDING);
++}
++
++static void queue_relay(struct evl_work *work) /* oob or in-band */
++{
++	unsigned long flags;
++
++	/*
++	 * Hard irqs off: we must not migrate between picking the
++	 * per-CPU list and posting the IRQ, and irq_post_inband()
++	 * requires it anyway. Same logic as irq_local_work_raise().
++	 */
++	flags = hard_local_irq_save();
++
++	if (llist_add(&work->relay_node, this_cpu_ptr(&evl_relay_list))) {
++		irq_post_inband(evl_relay_sirq);
++		if (running_inband() &&
++			!hard_irqs_disabled_flags(flags) && !irqs_disabled())
++			sync_current_irq_stage();
++	}
++
++	hard_local_irq_restore(flags);
++}
++
++void evl_sync_relay(struct evl_work *work) /* in-band */
++{
++	lockdep_assert_irqs_enabled();
++	might_sleep();
++
++	/* Same as irq_work_sync() for archs with a work interrupt. */
++	while (atomic_read(&work->relay_flags) & EVL_WORK_BUSY)
++		cpu_relax();
++}
++EXPORT_SYMBOL_GPL(evl_sync_relay);
+ 
+ void evl_init_work(struct evl_work *work,
+ 		void (*handler)(struct evl_work *work))
+ {
+-	init_irq_work(&work->irq_work, __evl_do_irq_work);
++	atomic_set(&work->relay_flags, 0);
+ 	INIT_WORK(&work->wq_work, __evl_do_work);
+ 	work->handler_noreturn = (typeof(work->handler_noreturn))handler;
+ 	work->element = NULL;
+@@ -71,7 +164,7 @@ void evl_init_sync_work(struct evl_sync_work *sync_work,
+ {
+ 	struct evl_work *work = &sync_work->work;
+ 
+-	init_irq_work(&work->irq_work, __evl_do_irq_work);
++	atomic_set(&work->relay_flags, 0);
+ 	INIT_WORK(&work->wq_work, __evl_do_sync_work);
+ 	work->handler = (typeof(work->handler))handler;
+ 	/*
+@@ -98,12 +191,14 @@ bool evl_call_inband_from(struct evl_work *work,
+ 	if (e)
+ 		evl_get_element(e);
+ 
+-	if (!irq_work_queue(&work->irq_work)) {
++	if (!claim_relay(work)) {
+ 		if (e)
+ 			evl_put_element(e);
+ 		return false;
+ 	}
+ 
++	queue_relay(work);
++
+ 	return true;
+ }
+ EXPORT_SYMBOL_GPL(evl_call_inband_from);
+@@ -127,3 +222,30 @@ int evl_call_inband_sync_from(struct evl_sync_work *sync_work,
+ 	return evl_wait_flag(&sync_work->done) ?: sync_work->result;
+ }
+ EXPORT_SYMBOL_GPL(evl_call_inband_sync_from);
++
++int __init evl_init_relay(void)
++{
++	int sirq, ret;
++
++	sirq = irq_create_direct_mapping(synthetic_irq_domain);
++	if (sirq == 0)
++		return -EAGAIN;
++
++	ret = __request_percpu_irq(sirq, relay_interrupt,
++				IRQF_NO_THREAD, "EVL relay",
++				&evl_relay_list);
++	if (ret) {
++		irq_dispose_mapping(sirq);
++		return ret;
++	}
++
++	evl_relay_sirq = sirq;
++
++	return 0;
++}
++
++void __init evl_cleanup_relay(void)
++{
++	free_percpu_irq(evl_relay_sirq, &evl_relay_list);
++	irq_dispose_mapping(evl_relay_sirq);
++}
+diff --git a/kernel/evl/proxy_gate.h b/kernel/evl/proxy_gate.h
+new file mode 100644
+index 000000000000..a8e9f0eaca6f
+--- /dev/null
++++ b/kernel/evl/proxy_gate.h
+@@ -0,0 +1,74 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Boundary between the EVL side of a proxy (proxy.c) and its
++ * in-band, Linux side (proxy_bridge.c).
++ *
++ * proxy_bridge.c only includes this header: struct evl_proxy is
++ * opaque there, so the Linux side can reach the EVL state of a
++ * proxy through the gates declared below only.
++ */
++
++#ifndef _EVL_PROXY_GATE_H
++#define _EVL_PROXY_GATE_H
++
++#include <linux/types.h>
++#include <linux/poll.h>
++
++struct file;
++struct vm_area_struct;
++struct evl_proxy;		/* EVL side, opaque to proxy_bridge.c */
++struct proxy_bridge;		/* Linux side, opaque to proxy.c */
++
++/*
++ * Gates: implemented by proxy.c, called by proxy_bridge.c. None of
++ * them sleeps or depends on any Linux lock.
++ */
++
++/* Find the Linux side of the proxy open on @filp. */
++struct proxy_bridge *proxy_gate_bridge(struct file *filp);
++
++/* Both stages: copy into / out of the rings. */
++ssize_t proxy_gate_write(struct file *filp, const char __user *u_buf,
++			size_t count, bool *kick);
++bool proxy_gate_can_write(struct evl_proxy *proxy, size_t size);
++ssize_t proxy_gate_read(struct file *filp, char __user *u_buf,
++			size_t count);
++
++/* Output ring: the Linux side is the consumer. */
++unsigned int proxy_gate_out_fill(struct evl_proxy *proxy);
++unsigned int proxy_gate_out_consume(struct evl_proxy *proxy,
++				unsigned int n);
++void proxy_gate_out_done(struct evl_proxy *proxy, unsigned int remaining);
++
++/* Input ring: the Linux side is the producer. */
++unsigned int proxy_gate_in_fill(struct evl_proxy *proxy);
++void proxy_gate_in_request(struct evl_proxy *proxy, unsigned int n);
++unsigned int proxy_gate_in_requested(struct evl_proxy *proxy);
++void proxy_gate_in_produce(struct evl_proxy *proxy, unsigned int n);
++unsigned int proxy_gate_in_fulfil(struct evl_proxy *proxy, unsigned int n);
++void proxy_gate_in_stop(struct evl_proxy *proxy,
++			unsigned int fulfilled, ssize_t ret);
++bool proxy_gate_in_done(struct evl_proxy *proxy, bool exception);
++bool proxy_gate_in_take_eof(struct evl_proxy *proxy);
++
++/*
++ * Bridge: implemented by proxy_bridge.c, called by proxy.c (factory,
++ * relay work, file operations).
++ */
++struct proxy_bridge *proxy_bridge_create(struct evl_proxy *proxy,
++					struct file *filp,
++					void *out_mem, void *in_mem,
++					unsigned int bufsz,
++					unsigned int granularity);
++void proxy_bridge_destroy(struct proxy_bridge *br);
++void proxy_bridge_relay_output(struct proxy_bridge *br);
++void proxy_bridge_relay_input(struct proxy_bridge *br);
++ssize_t proxy_bridge_write(struct file *filp, const char __user *u_buf,
++			size_t count, loff_t *ppos);
++ssize_t proxy_bridge_read(struct file *filp, char __user *u_buf,
++			size_t count, loff_t *ppos);
++__poll_t proxy_bridge_poll(struct file *filp, poll_table *wait);
++int proxy_bridge_mmap(struct file *filp, struct vm_area_struct *vma);
++
++#endif /* !_EVL_PROXY_GATE_H */
+diff --git a/kernel/evl/proxy_bridge.c b/kernel/evl/proxy_bridge.c
+new file mode 100644
+index 000000000000..bd7e29bf9692
+--- /dev/null
++++ b/kernel/evl/proxy_bridge.c
+@@ -0,0 +1,331 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2019 Philippe Gerum  <rpm@xenomai.org>
++ *
++ * Linux side of the EVL proxy: the relay workers moving data between
++ * the rings and the proxied file, and the in-band file operations.
++ * All of this runs in-band only. The EVL state of the proxy is
++ * reached through the gates declared in proxy_gate.h exclusively.
++ */
++
++#include <linux/types.h>
++#include <linux/slab.h>
++#include <linux/kernel.h>
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/wait.h>
++#include <linux/mutex.h>
++#include <linux/poll.h>
++#include "proxy_gate.h"
++
++/* Linux side of one ring. */
++struct proxy_relay {
++	void *bufmem;		/* Shared data area. */
++	unsigned int bufsz;	/* Snapshot, immutable. */
++	unsigned int granularity; /* Snapshot, immutable. */
++	unsigned int off;	/* Output: rdoff, input: wroff. */
++	struct mutex worker_lock;
++	wait_queue_head_t inband_wait;
++};
++
++/* Linux side of one proxy. */
++struct proxy_bridge {
++	struct evl_proxy *proxy; /* Opaque, only passed to the gates. */
++	struct file *filp;	/* Proxied file, reference held by proxy.c. */
++	bool has_out, has_in;
++	struct proxy_relay out, in;
++};
++
++static void relay_output(struct proxy_bridge *br)
++{
++	struct proxy_relay *rl = &br->out;
++	unsigned int rdoff, count, len, n;
++	struct file *filp = br->filp;
++	loff_t pos, *ppos;
++	ssize_t ret = 0;
++
++	mutex_lock(&rl->worker_lock);
++
++	count = proxy_gate_out_fill(br->proxy);
++	rdoff = rl->off;
++
++	ppos = NULL;
++	if (filp->f_mode & FMODE_ATOMIC_POS) {
++		mutex_lock(&filp->f_pos_lock);
++		ppos = &pos;
++		pos = filp->f_pos;
++	}
++
++	while (count > 0 && ret >= 0) {
++		len = count;
++		do {
++			if (rdoff + len > rl->bufsz)
++				n = rl->bufsz - rdoff;
++			else
++				n = len;
++
++			if (rl->granularity > 0)
++				n = min(n, rl->granularity);
++
++			ret = kernel_write(filp, rl->bufmem + rdoff, n, ppos);
++			if (ret >= 0 && ppos)
++				filp->f_pos = *ppos;
++			len -= n;
++			rdoff = (rdoff + n) % rl->bufsz;
++		} while (len > 0 && ret > 0);
++		/*
++		 * On error, the portion we failed writing is
++		 * lost. Fair enough.
++		 */
++		count = proxy_gate_out_consume(br->proxy, count);
++	}
++
++	if (ppos)
++		mutex_unlock(&filp->f_pos_lock);
++
++	rl->off = rdoff;
++
++	mutex_unlock(&rl->worker_lock);
++
++	/*
++	 * Since we are running in-band, make sure to give precedence
++	 * to oob waiters for wakeups: the gate notifies them first.
++	 */
++	proxy_gate_out_done(br->proxy, count);
++	if (count < rl->bufsz)
++		wake_up(&rl->inband_wait);
++}
++
++static void relay_input(struct proxy_bridge *br)
++{
++	struct proxy_relay *rl = &br->in;
++	unsigned int wroff, count, len, n;
++	struct file *filp = br->filp;
++	bool exception = false;
++	loff_t pos, *ppos;
++	ssize_t ret = 0;
++
++	mutex_lock(&rl->worker_lock);
++
++	count = proxy_gate_in_requested(br->proxy);
++	wroff = rl->off;
++
++	ppos = NULL;
++	if (filp->f_mode & FMODE_ATOMIC_POS) {
++		mutex_lock(&filp->f_pos_lock);
++		ppos = &pos;
++		pos = filp->f_pos;
++	}
++
++	while (count > 0) {
++		len = count;
++		do {
++			if (wroff + len > rl->bufsz)
++				n = rl->bufsz - wroff;
++			else
++				n = len;
++
++			if (rl->granularity > 0)
++				n = min(n, rl->granularity);
++
++			ret = kernel_read(filp, rl->bufmem + wroff, n, ppos);
++			if (ret <= 0) {
++				proxy_gate_in_stop(br->proxy, count - len, ret);
++				exception = true;
++				goto done;
++			}
++
++			if (ppos)
++				filp->f_pos = *ppos;
++
++			proxy_gate_in_produce(br->proxy, ret);
++			len -= ret;
++			wroff = (wroff + n) % rl->bufsz;
++		} while (len > 0);
++		count = proxy_gate_in_fulfil(br->proxy, count);
++	}
++done:
++	if (ppos)
++		mutex_unlock(&filp->f_pos_lock);
++
++	rl->off = wroff;
++
++	mutex_unlock(&rl->worker_lock);
++
++	if (proxy_gate_in_done(br->proxy, exception))
++		wake_up(&rl->inband_wait);
++}
++
++/* Relay work handlers, called by proxy.c. */
++
++void proxy_bridge_relay_output(struct proxy_bridge *br)
++{
++	relay_output(br);
++}
++
++void proxy_bridge_relay_input(struct proxy_bridge *br)
++{
++	relay_input(br);
++}
++
++/* In-band file operations. */
++
++ssize_t proxy_bridge_write(struct file *filp, const char __user *u_buf,
++			size_t count, loff_t *ppos)
++{
++	struct proxy_bridge *br = proxy_gate_bridge(filp);
++	bool kick;
++	ssize_t ret;
++
++	if (!br->has_out)
++		return -ENXIO;
++
++	do {
++		ret = proxy_gate_write(filp, u_buf, count, &kick);
++		if (kick) {
++			/*
++			 * The ring went from empty to non-empty:
++			 * relay synchronously from the caller's
++			 * context.
++			 */
++			relay_output(br);
++			return ret;
++		}
++		if (ret != -EAGAIN || filp->f_flags & O_NONBLOCK)
++			break;
++		ret = wait_event_interruptible(br->out.inband_wait,
++				proxy_gate_can_write(br->proxy, count));
++	} while (!ret);
++
++	return ret;
++}
++
++ssize_t proxy_bridge_read(struct file *filp, char __user *u_buf,
++			size_t count, loff_t *ppos)
++{
++	struct proxy_bridge *br = proxy_gate_bridge(filp);
++	bool request_done = false;
++	ssize_t ret;
++
++	if (!br->has_in)
++		return -ENXIO;
++
++	if (count == 0)
++		return 0;
++
++	for (;;) {
++		ret = proxy_gate_read(filp, u_buf, count);
++		if (ret || filp->f_flags & O_NONBLOCK)
++			break;
++		if (!request_done) {
++			proxy_gate_in_request(br->proxy, count);
++			request_done = true;
++		}
++		relay_input(br);
++		if (proxy_gate_in_take_eof(br->proxy)) {
++			ret = 0;
++			break;
++		}
++	}
++
++	return ret;
++}
++
++__poll_t proxy_bridge_poll(struct file *filp, poll_table *wait)
++{
++	struct proxy_bridge *br = proxy_gate_bridge(filp);
++	__poll_t ret = 0;
++
++	if (br->has_out) {
++		poll_wait(filp, &br->out.inband_wait, wait);
++		if (proxy_gate_out_fill(br->proxy) < br->out.bufsz)
++			ret = POLLOUT|POLLWRNORM;
++	}
++
++	if (br->has_in) {
++		poll_wait(filp, &br->in.inband_wait, wait);
++		if (proxy_gate_in_fill(br->proxy) > 0)
++			ret |= POLLIN|POLLRDNORM;
++	}
++
++	if (br->filp->f_op->poll)
++		ret |= br->filp->f_op->poll(br->filp, wait);
++
++	return ret;
++}
++
++int proxy_bridge_mmap(struct file *filp, struct vm_area_struct *vma)
++{
++	struct proxy_bridge *br = proxy_gate_bridge(filp);
++	struct file *mapfilp = br->filp;
++	int ret;
++
++	if (mapfilp->f_op->mmap == NULL)
++		return -ENODEV;
++
++	vma->vm_file = get_file(mapfilp);
++
++	/*
++	 * Since the mapper element impersonates a different file, we
++	 * need to swap references: if the mapping call fails, we have
++	 * to drop the reference on the target file we just took on
++	 * entry; if it succeeds, then we have to drop the reference
++	 * on the mapper file do_mmap_pgoff() acquired before calling
++	 * us.
++	 */
++	ret = call_mmap(mapfilp, vma);
++	if (ret)
++		fput(mapfilp);
++	else
++		fput(filp);
++
++	return ret;
++}
++
++/* Creation and disposal, called by the proxy factory (in-band). */
++
++static void init_relay(struct proxy_relay *rl, void *bufmem,
++		unsigned int bufsz, unsigned int granularity)
++{
++	rl->bufmem = bufmem;
++	rl->bufsz = bufsz;
++	rl->granularity = granularity;
++	rl->off = 0;
++	mutex_init(&rl->worker_lock);
++	init_waitqueue_head(&rl->inband_wait);
++}
++
++struct proxy_bridge *proxy_bridge_create(struct evl_proxy *proxy,
++					struct file *filp,
++					void *out_mem, void *in_mem,
++					unsigned int bufsz,
++					unsigned int granularity)
++{
++	struct proxy_bridge *br;
++
++	br = kzalloc(sizeof(*br), GFP_KERNEL);
++	if (br == NULL)
++		return NULL;
++
++	br->proxy = proxy;
++	br->filp = filp;
++
++	if (out_mem) {
++		br->has_out = true;
++		init_relay(&br->out, out_mem, bufsz, granularity);
++	}
++
++	if (in_mem) {
++		br->has_in = true;
++		init_relay(&br->in, in_mem, bufsz, granularity);
++	}
++
++	return br;
++}
++
++void proxy_bridge_destroy(struct proxy_bridge *br)
++{
++	kfree(br);
++}

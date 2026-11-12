@@ -1,0 +1,66 @@
+diff --git a/kernel/evl/proxy.c b/kernel/evl/proxy.c
+index 77d4f4c0ab85..deb4f3eb5bd4 100644
+--- a/kernel/evl/proxy.c
++++ b/kernel/evl/proxy.c
+@@ -72,6 +72,17 @@ static inline bool proxy_may_write(struct evl_proxy *proxy)
+ 	return !!(proxy->element.clone_flags & EVL_CLONE_OUTPUT);
+ }
+ 
++/*
++ * O_NONBLOCK as seen from code which may run oob: read the EVL
++ * mirror instead of filp->f_flags.
++ */
++static inline bool proxy_nonblock(struct file *filp)
++{
++	struct evl_file_binding *fbind = filp->private_data;
++
++	return evl_file_nonblock(&fbind->efile);
++}
++
+ static void relay_output(struct evl_proxy *proxy)
+ {
+ 	struct proxy_ring *ring = &proxy->output.ring;
+@@ -337,7 +348,7 @@ static ssize_t do_proxy_read(struct file *filp,
+ 		if (avail < len) {
+ 			raw_spin_unlock_irqrestore(&ring->lock, flags);
+ 
+-			if (avail > 0 && filp->f_flags & O_NONBLOCK) {
++			if (avail > 0 && proxy_nonblock(filp)) {
+ 				/* granularity may not be ^2. */
+ 				len = rounddown(avail, ring->granularity ?: 1);
+ 				if (len)
+@@ -407,7 +418,7 @@ static ssize_t proxy_oob_write(struct file *filp,
+ 
+ 	do {
+ 		ret = do_proxy_write(filp, u_buf, count);
+-		if (ret != -EAGAIN || filp->f_flags & O_NONBLOCK)
++		if (ret != -EAGAIN || proxy_nonblock(filp))
+ 			break;
+ 		ret = evl_wait_flag(&ring->oob_wait);
+ 	} while (!ret);
+@@ -432,7 +443,7 @@ static ssize_t proxy_oob_read(struct file *filp,
+ 
+ 	for (;;) {
+ 		ret = do_proxy_read(filp, u_buf, count);
+-		if (ret || filp->f_flags & O_NONBLOCK)
++		if (ret || proxy_nonblock(filp))
+ 			break;
+ 		if (!request_done) {
+ 			atomic_add(count, &in->reqsz);
+@@ -481,11 +492,12 @@ static __poll_t proxy_oob_poll(struct file *filp,
+ 	}
+ 
+ 	/*
+-	 * If the proxied file implements an oob poll handler, collect
+-	 * the events pending there as well.
++	 * Readiness only depends on the rings: oob_read/oob_write
++	 * never reach the proxied file directly, data is always
++	 * relayed in-band by kernel_read/kernel_write. So we do not
++	 * collect events from the oob poll handler of the proxied
++	 * file, if any.
+ 	 */
+-	if (proxy->filp->f_op->oob_poll)
+-		ret |= proxy->filp->f_op->oob_poll(filp, wait);
+ 
+ 	return ret;
+ }

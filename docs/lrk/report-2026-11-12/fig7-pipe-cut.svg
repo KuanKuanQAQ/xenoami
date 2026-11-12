@@ -1,0 +1,284 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1130" viewBox="0 0 1500 1130" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif">
+<!-- 截断之后：xbuf B 向示意，以及每个标记的截断方法与结果 -->
+<rect x="0" y="0" width="1500" height="1130" rx="0" fill="#FFFFFF"/>
+<text x="20" y="30" font-size="17" fill="#000000" text-anchor="start" font-weight="bold">① 截断后的 xbuf B 向（ib 写者 → oob 读者）；A 向对称</text>
+<rect x="20" y="54" width="430" height="330" rx="8" fill="#FBEBE1" stroke="#D55E00" stroke-width="1.5"/>
+<text x="36" y="82" font-size="15" text-anchor="start" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#D55E00"> 端：ib 写者（可能多个）</tspan></text>
+<path d="M43,109 v-7 a7,7 0 0 1 14,0 v7" fill="none" stroke="#D55E00" stroke-width="2"/>
+<rect x="39" y="109" width="22" height="17" rx="3" fill="#D55E00"/>
+<circle cx="50" cy="117" r="2.6" fill="#FFFFFF"/>
+<text x="70" y="118" font-size="12.5" fill="#222222" text-anchor="start">z 锁（spinlock_t）：只管 z 侧的 W 和预留</text>
+<rect x="36" y="134" width="398" height="26" rx="13" fill="#FFFFFF" stroke="#D55E00" stroke-width="1"/>
+<text x="235" y="152" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 私有：W · pending · rsvd</tspan></text>
+<circle cx="48" cy="185" r="11" fill="#333333"/>
+<text x="48" y="189" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">z1</text>
+<text x="66" y="190" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">预留（持 z 锁）：fill_pub + rsvd + n ≤ bufsz？</text>
+<text x="66" y="208" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">off = W; W += n; pending++; rsvd += n</text>
+<circle cx="48" cy="233" r="11" fill="#333333"/>
+<text x="48" y="237" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">z2</text>
+<text x="66" y="238" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">拷贝（不持任何锁）</text>
+<text x="66" y="256" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">copy_from_user(buf + off, …)</text>
+<circle cx="48" cy="281" r="11" fill="#333333"/>
+<text x="48" y="285" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">z3</text>
+<text x="66" y="286" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">提交（持 z 锁）：pending 为 0 才报告</text>
+<text x="66" y="304" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">pending--; if (!pending) commit(h, rsvd)</text>
+<circle cx="48" cy="329" r="11" fill="#333333"/>
+<text x="48" y="333" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">z4</text>
+<text x="66" y="334" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">放不下就等自己的等待队列</text>
+<text x="66" y="352" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">wait_event(ib_wait, …)</text>
+<rect x="1050" y="54" width="430" height="330" rx="8" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.5"/>
+<text x="1066" y="82" font-size="15" text-anchor="start" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#0072B2"> 端：oob 读者</tspan></text>
+<path d="M1073,109 v-7 a7,7 0 0 1 14,0 v7" fill="none" stroke="#0072B2" stroke-width="2"/>
+<rect x="1069" y="109" width="22" height="17" rx="3" fill="#0072B2"/>
+<circle cx="1080" cy="117" r="2.6" fill="#FFFFFF"/>
+<text x="1100" y="118" font-size="12.5" fill="#222222" text-anchor="start">Z 锁：只在可信代码里，持锁时间有界</text>
+<rect x="1066" y="134" width="398" height="26" rx="13" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<text x="1265" y="152" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 私有：fill′ · R · pending · rsvd</tspan></text>
+<circle cx="1078" cy="185" r="11" fill="#333333"/>
+<text x="1078" y="189" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Z1</text>
+<text x="1096" y="190" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">查数据：fill′ − rsvd ≥ n？</text>
+<text x="1096" y="208" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">（只看自己的 fill′）</text>
+<circle cx="1078" cy="233" r="11" fill="#333333"/>
+<text x="1078" y="237" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Z2</text>
+<text x="1096" y="238" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">不够：带超时等，超时告警</text>
+<text x="1096" y="256" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">evl_wait_timeout(i_event)</text>
+<circle cx="1078" cy="281" r="11" fill="#333333"/>
+<text x="1078" y="285" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Z3</text>
+<text x="1096" y="286" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">预留并读数据，地址只用自己的 R</text>
+<text x="1096" y="304" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">off = R; R += n; raw_copy_to_user(…)</text>
+<circle cx="1078" cy="329" r="11" fill="#333333"/>
+<text x="1078" y="333" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Z4</text>
+<text x="1096" y="334" font-size="12.5" fill="#000000" text-anchor="start" font-weight="bold">pending 为 0 时：扣减、发布、记录通知</text>
+<text x="1096" y="352" font-size="11.5" fill="#333333" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">fill′ −= rsvd; fill_pub = fill′; notify_post()</text>
+<rect x="734" y="96" width="6" height="32" rx="0" fill="#333333"/>
+<rect x="760" y="96" width="6" height="32" rx="0" fill="#333333"/>
+<rect x="730" y="91" width="40" height="6" rx="0" fill="#333333"/>
+<path d="M450,112 L721,112" fill="none" stroke="#D55E00" stroke-width="1.8"/>
+<polygon points="728.0,112.0 720.0,108.0 720.0,116.0" fill="#D55E00"/>
+<path d="M772,112 L1041,112" fill="none" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="1048.0,112.0 1040.0,108.0 1040.0,116.0" fill="#0072B2"/>
+<text x="750" y="80" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">② 门 commit(h, n)：z 只传入一个数</text>
+<text x="750" y="148" font-size="12" text-anchor="middle"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222">：n 截断到 bufsz − fill′；fill′ += n；有读者在等才唤醒</tspan></text>
+<rect x="582" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="606" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="630" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="654" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="678" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="702" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="726" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="750" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="774" y="196" width="24" height="28" rx="0" fill="#C9C9C9" stroke="#777777" stroke-width="1"/>
+<rect x="798" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="822" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="846" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="870" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<rect x="894" y="196" width="24" height="28" rx="0" fill="#FFFFFF" stroke="#777777" stroke-width="1"/>
+<path d="M450,210 L573,210" fill="none" stroke="#D55E00" stroke-width="1.8"/>
+<polygon points="580.0,210.0 572.0,206.0 572.0,214.0" fill="#D55E00"/>
+<text x="516" y="202" font-size="11.5" fill="#D55E00" text-anchor="middle" font-weight="bold">z2 写</text>
+<path d="M920,210 L1041,210" fill="none" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="1048.0,210.0 1040.0,206.0 1040.0,214.0" fill="#0072B2"/>
+<text x="984" y="202" font-size="11.5" fill="#0072B2" text-anchor="middle" font-weight="bold">Z3 读</text>
+<text x="750" y="246" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">① 共享 buf：内容只当数据</text>
+<rect x="725" y="289" width="14" height="22" rx="2" fill="#FFFFFF" stroke="#7A5C99" stroke-width="1.2"/>
+<rect x="743" y="289" width="14" height="22" rx="2" fill="#FFFFFF" stroke="#7A5C99" stroke-width="1.2"/>
+<rect x="761" y="289" width="14" height="22" rx="2" fill="#FFFFFF" stroke="#7A5C99" stroke-width="1.2"/>
+<path d="M1048,300 L787,300" fill="none" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="780.0,300.0 788.0,304.0 788.0,296.0" fill="#0072B2"/>
+<path d="M720,300 L459,300" fill="none" stroke="#D55E00" stroke-width="1.8"/>
+<polygon points="452.0,300.0 460.0,304.0 460.0,296.0" fill="#D55E00"/>
+<text x="750" y="278" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">③ 通知记录：Z 只记录</text>
+<text x="750" y="330" font-size="12" text-anchor="middle"><tspan fill="#222222">合成中断；</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 取走后自己 wake_up(ib_wait)</tspan></text>
+<path d="M1048,364 L459,364" fill="none" stroke="#666666" stroke-width="1.3" stroke-dasharray="5 3"/>
+<polygon points="452.0,364.0 460.0,368.0 460.0,360.0" fill="#666666"/>
+<text x="750" y="357" font-size="12" text-anchor="middle"><tspan fill="#666666">④ 发布 fill_pub：</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#666666"> 只读，用来算空闲；</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#666666"> 不回读</tspan></text>
+<text x="20" y="430" font-size="17" fill="#000000" text-anchor="start" font-weight="bold">② 每个标记的截断方法与结果（颜色 = 方法）</text>
+<text x="1480" y="430" font-size="12.5" fill="#666666" text-anchor="end">proxy 已去掉 proxy_write / proxy_read</text>
+<rect x="20" y="444" width="1460" height="50" rx="0" fill="#F2F2F2"/>
+<text x="30" y="475" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">标记</text>
+<text x="307.5" y="465" font-size="13.5" fill="#000000" text-anchor="middle" font-weight="bold">xbuf A 向 oob → ib</text>
+<text x="307.5" y="484" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">P = </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222">，C = </tspan><tspan fill="#D55E00">z</tspan></text>
+<text x="642.5" y="465" font-size="13.5" fill="#000000" text-anchor="middle" font-weight="bold">xbuf B 向 ib → oob</text>
+<text x="642.5" y="484" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">P = </tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222">，C = </tspan><tspan fill="#0072B2">Z</tspan></text>
+<text x="977.5" y="465" font-size="13.5" fill="#000000" text-anchor="middle" font-weight="bold">proxy 输出</text>
+<text x="977.5" y="484" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">P = </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222">，C = </tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222">（转发者）</tspan></text>
+<text x="1312.5" y="465" font-size="13.5" fill="#000000" text-anchor="middle" font-weight="bold">proxy 输入</text>
+<text x="1312.5" y="484" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">P = </tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222">（转发者），C = </tspan><tspan fill="#0072B2">Z</tspan></text>
+<text x="30" y="516.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">W</text>
+<rect x="146" y="499" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="307.5" y="516.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用</tspan></text>
+<rect x="481" y="499" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="642.5" y="516.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<rect x="816" y="499" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="977.5" y="516.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用</tspan></text>
+<rect x="1151" y="499" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="1312.5" y="516.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用（转发者）</tspan></text>
+<line x1="20" y1="530" x2="1480" y2="530" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="552.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">R</text>
+<rect x="146" y="535" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="307.5" y="552.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<rect x="481" y="535" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="642.5" y="552.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用</tspan></text>
+<rect x="816" y="535" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="977.5" y="552.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用（转发者）</tspan></text>
+<rect x="1151" y="535" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="1312.5" y="552.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用</tspan></text>
+<line x1="20" y1="566" x2="1480" y2="566" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="588.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">fillsz</text>
+<path d="M307.5,571 H159.0 A13.0,13.0 0 0 0 159.0,597 H307.5 Z" fill="#E3F1E4"/>
+<path d="M307.5,571 H456.0 A13.0,13.0 0 0 1 456.0,597 H307.5 Z" fill="#FCEFD2"/>
+<rect x="146" y="571" width="323" height="26" rx="13" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="307.5" y="588.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 存 fill′；</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 报告读走量，截断后扣减</tspan></text>
+<path d="M642.5,571 H494.0 A13.0,13.0 0 0 0 494.0,597 H642.5 Z" fill="#E3F1E4"/>
+<path d="M642.5,571 H791.0 A13.0,13.0 0 0 1 791.0,597 H642.5 Z" fill="#FCEFD2"/>
+<rect x="481" y="571" width="323" height="26" rx="13" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="642.5" y="588.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 存 fill′；</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 报告写入量，截断后计入</tspan></text>
+<path d="M977.5,571 H829.0 A13.0,13.0 0 0 0 829.0,597 H977.5 Z" fill="#E3F1E4"/>
+<path d="M977.5,571 H1126.0 A13.0,13.0 0 0 1 1126.0,597 H977.5 Z" fill="#FCEFD2"/>
+<rect x="816" y="571" width="323" height="26" rx="13" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="977.5" y="588.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 存 fill′；转发者报告读走量</tspan></text>
+<path d="M1312.5,571 H1164.0 A13.0,13.0 0 0 0 1164.0,597 H1312.5 Z" fill="#E3F1E4"/>
+<path d="M1312.5,571 H1461.0 A13.0,13.0 0 0 1 1461.0,597 H1312.5 Z" fill="#FCEFD2"/>
+<rect x="1151" y="571" width="323" height="26" rx="13" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="1312.5" y="588.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 存 fill′；转发者报告读入量</tspan></text>
+<line x1="20" y1="602" x2="1480" y2="602" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="624.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">P 侧预留</text>
+<rect x="146" y="607" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="307.5" y="624.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<rect x="481" y="607" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="642.5" y="624.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用；pending 为 0 才报告</tspan></text>
+<rect x="816" y="607" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="977.5" y="624.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<rect x="1151" y="607" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="1312.5" y="624.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<line x1="20" y1="638" x2="1480" y2="638" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="660.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">C 侧预留</text>
+<rect x="146" y="643" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="307.5" y="660.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 独用；pending 为 0 才报告</tspan></text>
+<rect x="481" y="643" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="642.5" y="660.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<rect x="816" y="643" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="977.5" y="660.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="1151" y="643" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="1312.5" y="660.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 独用，</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁</tspan></text>
+<line x1="20" y1="674" x2="1480" y2="674" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="696.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">环锁</text>
+<rect x="146" y="679" width="323" height="26" rx="13" fill="#DDF0F3" stroke="#00838F" stroke-width="1.2"/>
+<text x="307.5" y="696.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">拆成 </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁、</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 锁，各管本侧</tspan></text>
+<rect x="481" y="679" width="323" height="26" rx="13" fill="#DDF0F3" stroke="#00838F" stroke-width="1.2"/>
+<text x="642.5" y="696.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">拆成 </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 锁、</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 锁，各管本侧</tspan></text>
+<rect x="816" y="679" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="977.5" y="696.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">原本只有 </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 用</tspan></text>
+<rect x="1151" y="679" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="1312.5" y="696.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">原本只有 </tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 用</tspan></text>
+<line x1="20" y1="710" x2="1480" y2="710" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="732.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">「有数据」</text>
+<rect x="146" y="715" width="323" height="26" rx="13" fill="#ECE6F5" stroke="#7A5C99" stroke-width="1.2"/>
+<text x="307.5" y="732.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 记录，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 取走后自己唤醒</tspan></text>
+<rect x="481" y="715" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="642.5" y="732.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 调门；</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 按 fill′ 决定唤醒，带超时</tspan></text>
+<rect x="816" y="715" width="323" height="26" rx="13" fill="#ECE6F5" stroke="#7A5C99" stroke-width="1.2"/>
+<text x="977.5" y="732.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 记录，转发者取走后处理</tspan></text>
+<rect x="1151" y="715" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="1312.5" y="732.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">转发者调门；</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 按 fill′ 唤醒，带超时</tspan></text>
+<line x1="20" y1="746" x2="1480" y2="746" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="768.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">「有空间」</text>
+<rect x="146" y="751" width="323" height="26" rx="13" fill="#E6E6E6" stroke="#555555" stroke-width="1.2"/>
+<text x="307.5" y="768.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 从不等：积压超阈值告警</tspan></text>
+<rect x="481" y="751" width="323" height="26" rx="13" fill="#ECE6F5" stroke="#7A5C99" stroke-width="1.2"/>
+<text x="642.5" y="768.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 记录，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 取走后自己唤醒</tspan></text>
+<rect x="816" y="751" width="323" height="26" rx="13" fill="#E6E6E6" stroke="#555555" stroke-width="1.2"/>
+<text x="977.5" y="768.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">oob 写者从不等：积压告警</tspan></text>
+<rect x="1151" y="751" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="1312.5" y="768.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<line x1="20" y1="782" x2="1480" y2="782" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="804.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">「P 在等」</text>
+<rect x="146" y="787" width="323" height="26" rx="13" fill="#E6E6E6" stroke="#555555" stroke-width="1.2"/>
+<text x="307.5" y="804.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 从不等，不再需要</tspan></text>
+<rect x="481" y="787" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="642.5" y="804.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 经门置提示，</tspan><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 只当提示</tspan></text>
+<rect x="816" y="787" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="977.5" y="804.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="1151" y="787" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="1312.5" y="804.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<line x1="20" y1="818" x2="1480" y2="818" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="840.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">请求量 reqsz</text>
+<rect x="146" y="823" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="307.5" y="840.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="481" y="823" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="642.5" y="840.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="816" y="823" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="977.5" y="840.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<path d="M1312.5,823 H1164.0 A13.0,13.0 0 0 0 1164.0,849 H1312.5 Z" fill="#E3F1E4"/>
+<path d="M1312.5,823 H1461.0 A13.0,13.0 0 0 1 1461.0,849 H1312.5 Z" fill="#FCEFD2"/>
+<rect x="1151" y="823" width="323" height="26" rx="13" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="1312.5" y="840.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 存请求量、记录通知；转发者报告完成量</tspan></text>
+<line x1="20" y1="854" x2="1480" y2="854" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="876.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">buf 内容</text>
+<rect x="146" y="859" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="307.5" y="876.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 写，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 读</tspan></text>
+<rect x="481" y="859" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="642.5" y="876.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">内容只当数据，不参与地址和控制</tspan></text>
+<rect x="816" y="859" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="977.5" y="876.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#0072B2">Z</tspan><tspan fill="#222222"> 写，</tspan><tspan fill="#D55E00">z</tspan><tspan fill="#222222"> 读</tspan></text>
+<rect x="1151" y="859" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="1312.5" y="876.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">内容只当数据，不参与地址和控制</tspan></text>
+<line x1="20" y1="890" x2="1480" y2="890" stroke="#999999" stroke-width="1.2"/>
+<text x="30" y="912.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">非阻塞标志</text>
+<rect x="146" y="895" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="307.5" y="912.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表记录打开方式</tspan></text>
+<rect x="481" y="895" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="642.5" y="912.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表记录打开方式</tspan></text>
+<rect x="816" y="895" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="977.5" y="912.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表记录打开方式</tspan></text>
+<rect x="1151" y="895" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="1312.5" y="912.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表记录打开方式</tspan></text>
+<line x1="20" y1="926" x2="1480" y2="926" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="948.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">fd → 对象</text>
+<rect x="146" y="931" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="307.5" y="948.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表代替 fd 表</tspan></text>
+<rect x="481" y="931" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="642.5" y="948.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表代替 fd 表</tspan></text>
+<rect x="816" y="931" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="977.5" y="948.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表代替 fd 表</tspan></text>
+<rect x="1151" y="931" width="323" height="26" rx="13" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="1312.5" y="948.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">可信句柄表代替 fd 表</tspan></text>
+<line x1="20" y1="962" x2="1480" y2="962" stroke="#E3E3E3" stroke-width="1"/>
+<text x="30" y="984.5" font-size="13.5" fill="#000000" text-anchor="start" font-weight="bold">错误 / EOF</text>
+<rect x="146" y="967" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="307.5" y="984.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="481" y="967" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="642.5" y="984.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无此项</tspan></text>
+<rect x="816" y="967" width="323" height="26" rx="13" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="977.5" y="984.32" font-size="12" text-anchor="middle"><tspan fill="#999999">无</tspan></text>
+<rect x="1151" y="967" width="323" height="26" rx="13" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="1312.5" y="984.32" font-size="12" text-anchor="middle" font-weight="bold"><tspan fill="#222222">截断成合法错误码再返回</tspan></text>
+<line x1="20" y1="998" x2="1480" y2="998" stroke="#999999" stroke-width="1.2"/>
+<rect x="20" y="1019" width="34" height="20" rx="10" fill="#E6E6E6" stroke="#555555" stroke-width="1.2"/>
+<text x="37" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="64" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">消除</tspan></text>
+<rect x="124.4" y="1019" width="34" height="20" rx="10" fill="#E3F1E4" stroke="#2E7D32" stroke-width="1.2"/>
+<text x="141.4" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="168.4" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">私有副本</tspan></text>
+<rect x="255.2" y="1019" width="34" height="20" rx="10" fill="#FCEFD2" stroke="#B07A00" stroke-width="1.2"/>
+<text x="272.2" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="299.2" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">输入化</tspan></text>
+<path d="M389.8,1019 H382.8 A10.0,10.0 0 0 0 382.8,1039 H389.8 Z" fill="#E3F1E4"/>
+<path d="M389.8,1019 H396.8 A10.0,10.0 0 0 1 396.8,1039 H389.8 Z" fill="#FCEFD2"/>
+<rect x="372.8" y="1019" width="34" height="20" rx="10" fill="none" stroke="#777777" stroke-width="1.2"/>
+<text x="389.8" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="416.8" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">私有副本 + 输入化</tspan></text>
+<rect x="582.8" y="1019" width="34" height="20" rx="10" fill="#ECE6F5" stroke="#7A5C99" stroke-width="1.2"/>
+<text x="599.8" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="626.8" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">只记录、不调用</tspan></text>
+<rect x="753.2" y="1019" width="34" height="20" rx="10" fill="#DDF0F3" stroke="#00838F" stroke-width="1.2"/>
+<text x="770.2" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="797.2" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">归属单侧</tspan></text>
+<rect x="884" y="1019" width="34" height="20" rx="10" fill="#FFFFFF" stroke="#BBBBBB" stroke-width="1.2"/>
+<text x="901" y="1029.36" font-size="1" text-anchor="middle" font-weight="bold"></text>
+<text x="928" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">原本不在交集</tspan></text>
+<rect x="1041.2" y="1019" width="34" height="20" rx="10" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="1.2"/>
+<text x="1058.2" y="1029.36" font-size="1" text-anchor="middle"></text>
+<text x="1085.2" y="1034" font-size="13" text-anchor="start"><tspan fill="#222222">无此项</tspan></text>
+<text x="1480" y="1034" font-size="12.5" text-anchor="end"><tspan fill="#0072B2">Z</tspan><tspan fill="#666666"> 可信域（实时侧）  </tspan><tspan fill="#D55E00">z</tspan><tspan fill="#666666"> 不可信域（非实时侧）</tspan></text>
+</svg>

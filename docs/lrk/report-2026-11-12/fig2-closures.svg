@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" viewBox="0 0 640 320" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif">
+<!-- 闭包 Z（必须可信）与 z（无法可信）及其交集 -->
+<rect x="0" y="0" width="640" height="320" fill="#FFFFFF"/>
+
+<!-- 底色：z 半透明叠在 Z 上，交集自然变深 -->
+<ellipse cx="210" cy="170" rx="198" ry="145" fill="#E3EEF7"/>
+<ellipse cx="430" cy="170" rx="198" ry="145" fill="#F7D3BD" fill-opacity="0.55"/>
+<ellipse cx="210" cy="170" rx="198" ry="145" fill="none" stroke="#0072B2" stroke-width="1.6"/>
+<ellipse cx="430" cy="170" rx="198" ry="145" fill="none" stroke="#D55E00" stroke-width="1.6"/>
+
+<text x="40" y="18" font-size="15" font-weight="bold" fill="#0072B2">Z　必须可信</text>
+<text x="600" y="18" font-size="15" font-weight="bold" fill="#D55E00" text-anchor="end">z　无法可信</text>
+
+<!-- Z 的递归链 -->
+<rect x="78" y="66" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="97" y="83" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">F1</text>
+<text x="124" y="83" font-size="12.5" fill="#000000">实时域执行的代码</text>
+<line x1="97" y1="90" x2="97" y2="112" stroke="#555555" stroke-width="1.2"/>
+<polygon points="97,120 92.5,111 101.5,111" fill="#555555"/>
+<text x="106" y="109" font-size="11.5" fill="#666666">依赖</text>
+
+<rect x="78" y="120" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="97" y="137" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">D1</text>
+<text x="124" y="137" font-size="12.5" fill="#000000">F1 依赖的数据</text>
+<line x1="97" y1="174" x2="97" y2="152" stroke="#555555" stroke-width="1.2"/>
+<polygon points="97,144 92.5,153 101.5,153" fill="#555555"/>
+<text x="106" y="163" font-size="11.5" fill="#666666">写</text>
+
+<rect x="78" y="174" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="97" y="191" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">F2</text>
+<text x="124" y="191" font-size="12.5" fill="#000000">写 D1 的函数</text>
+<line x1="97" y1="198" x2="97" y2="220" stroke="#555555" stroke-width="1.2"/>
+<polygon points="97,228 92.5,219 101.5,219" fill="#555555"/>
+<text x="106" y="217" font-size="11.5" fill="#666666">依赖</text>
+
+<rect x="78" y="228" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.2"/>
+<text x="97" y="245" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">D2</text>
+<text x="124" y="245" font-size="12.5" fill="#000000">……</text>
+
+<!-- z 的递归链（镜像） -->
+<rect x="524" y="66" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="543" y="83" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">f1</text>
+<text x="516" y="83" font-size="12.5" fill="#000000" text-anchor="end">非实时线程可触及</text>
+<line x1="543" y1="90" x2="543" y2="112" stroke="#555555" stroke-width="1.2"/>
+<polygon points="543,120 538.5,111 547.5,111" fill="#555555"/>
+<text x="534" y="109" font-size="11.5" fill="#666666" text-anchor="end">写</text>
+
+<rect x="524" y="120" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="543" y="137" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">d1</text>
+<text x="516" y="137" font-size="12.5" fill="#000000" text-anchor="end">f1 能写的数据</text>
+<line x1="543" y1="174" x2="543" y2="152" stroke="#555555" stroke-width="1.2"/>
+<polygon points="543,144 538.5,153 547.5,153" fill="#555555"/>
+<text x="534" y="163" font-size="11.5" fill="#666666" text-anchor="end">依赖</text>
+
+<rect x="524" y="174" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="543" y="191" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">f2</text>
+<text x="516" y="191" font-size="12.5" fill="#000000" text-anchor="end">依赖 d1 的函数</text>
+<line x1="543" y1="198" x2="543" y2="220" stroke="#555555" stroke-width="1.2"/>
+<polygon points="543,228 538.5,219 547.5,219" fill="#555555"/>
+<text x="534" y="217" font-size="11.5" fill="#666666" text-anchor="end">写</text>
+
+<rect x="524" y="228" width="38" height="24" rx="4" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.2"/>
+<text x="543" y="245" font-size="13" font-weight="bold" fill="#000000" text-anchor="middle">d2</text>
+<text x="516" y="245" font-size="12.5" fill="#000000" text-anchor="end">……</text>
+
+<!-- 交集 -->
+<text x="320" y="106" font-size="14" font-weight="bold" fill="#000000" text-anchor="middle">Z∩z 冲突集</text>
+<text x="320" y="144" font-size="12.5" fill="#000000" text-anchor="middle">xbuf 环下标、fillsz</text>
+<text x="320" y="174" font-size="12.5" fill="#000000" text-anchor="middle">EVL 等待对象</text>
+<text x="320" y="204" font-size="12.5" fill="#000000" text-anchor="middle">proxy 写端（两域共用）</text>
+</svg>

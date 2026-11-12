@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 600" width="780" height="600"
+     font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<!-- 把 LKL 链接进 EVL：编译流程与 helper 迁移 -->
+<defs>
+  <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#000"/></marker>
+  <marker id="ahb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0072B2"/></marker>
+  <marker id="ahr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#D55E00"/></marker>
+  <marker id="ahg" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#777"/></marker>
+  <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff"/><line x1="0" y1="0" x2="0" y2="6" stroke="#000" stroke-width="1"/></pattern>
+  <pattern id="dots" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#fff"/><circle cx="2.5" cy="2.5" r="0.9" fill="#000"/></pattern>
+  <g id="plug"><rect x="0" y="-5" width="12" height="10" rx="1.5" fill="#fff" stroke="#000" stroke-width="1.2"/><line x1="12" y1="-2.5" x2="18" y2="-2.5" stroke="#000" stroke-width="1.6"/><line x1="12" y1="2.5" x2="18" y2="2.5" stroke="#000" stroke-width="1.6"/></g>
+</defs>
+<style>
+  text  { fill:#000; }
+  .lbl  { font-size:11.5px; letter-spacing:.06em; }
+  .ttll { font-size:13.5px; font-weight:bold; }
+  .bt   { font-size:12.5px; text-anchor:middle; }
+  .bs   { font-size:11px; text-anchor:middle; }
+  .cap  { font-size:11px; fill:#333; }
+  .capc { font-size:11px; fill:#333; text-anchor:middle; }
+  .capr { font-size:11px; fill:#333; text-anchor:end; }
+  .key  { font-size:11px; fill:#0072B2; font-weight:bold; }
+  .red  { font-size:11px; fill:#D55E00; font-weight:bold; }
+  .m    { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; }
+  .mc   { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; text-anchor:middle; }
+  .mr   { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; text-anchor:end; }
+  .file { fill:#fff; stroke:#000; stroke-width:1.2; }
+  .cell { fill:#fff; stroke:#000; stroke-width:2.4; }
+  .obj  { fill:#fff; stroke:#000; stroke-width:1.2; }
+  .pg   { fill:#EDEDED; stroke:#777; stroke-width:1; }
+  .pb   { fill:#E3EEF7; stroke:#0072B2; stroke-width:1.6; }
+  .seg  { fill:#fff; stroke:#000; stroke-width:1; }
+  .segx { fill:url(#hatch); stroke:#D55E00; stroke-width:1.4; }
+  .lkl  { fill:#E3EEF7; stroke:#0072B2; stroke-width:1.2; }
+  .reg  { fill:#fff; stroke:#000; stroke-width:1.2; }
+  .regx { fill:url(#hatch); stroke:#000; stroke-width:1.2; }
+  .regd { fill:url(#dots); stroke:#000; stroke-width:1.2; }
+  .cf   { fill:none; stroke:#000; stroke-width:1.3; marker-end:url(#ah); }
+  .cfg  { fill:none; stroke:#777; stroke-width:1; marker-end:url(#ahg); }
+  .cfb  { fill:none; stroke:#0072B2; stroke-width:1.8; marker-end:url(#ahb); }
+  .cfr  { fill:none; stroke:#D55E00; stroke-width:1.3; stroke-dasharray:5 3; marker-end:url(#ahr); }
+  .div  { stroke:#000; stroke-width:0.6; }
+</style>
+<rect width="780" height="600" fill="#fff"/>
+
+<!-- ================= LKL 侧 ================= -->
+<text class="lbl" x="30" y="32">LKL 侧：生成 lkl_blob.o</text>
+
+<!-- evl_glue.c 源文件 -->
+<path class="file" d="M30,62 h108 l18,18 v108 h-126 z"/>
+<path d="M138,62 v18 h18" fill="none" stroke="#000" stroke-width="1.2"/>
+<text class="m" x="40" y="78" font-weight="bold">evl_glue.c</text>
+<text class="m" x="40" y="102">lkl_evl_xxx(…)</text>
+<text class="m" x="40" y="116">{</text>
+<text class="m" x="40" y="130" xml:space="preserve">  return xxx(…);</text>
+<text class="m" x="40" y="144">}</text>
+<text class="m" x="40" y="172" fill="#0072B2" font-weight="bold">× 14 个 helper</text>
+<circle cx="31" cy="62" r="8.5" fill="#0072B2"/><text x="31" y="65.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="11">1</text>
+
+<path class="cf" d="M158,125 L188,125"/>
+<text class="capc" x="173" y="117">编译</text>
+
+<!-- lkl.o：符号视角，粗边界 = objcopy -G -->
+<rect class="cell" x="190" y="52" width="200" height="146" rx="16"/>
+<text class="ttll" x="204" y="73">lkl.o</text>
+<text class="cap" x="246" y="73">（objcopy -G 之后）</text>
+<rect class="pg" x="202" y="86" width="116" height="18" rx="9"/><text class="m" x="211" y="99">t kmalloc</text>
+<rect class="pg" x="202" y="110" width="116" height="18" rx="9"/><text class="m" x="211" y="123">t schedule</text>
+<rect class="pg" x="202" y="134" width="116" height="18" rx="9"/><text class="m" x="211" y="147">t rb_insert_color</text>
+<rect class="pg" x="202" y="158" width="116" height="18" rx="9"/><text class="m" x="211" y="171">t … 上万个</text>
+<!-- 跨在边界上的全局符号 -->
+<rect class="pb" x="326" y="92" width="176" height="20" rx="10"/><text class="m" x="336" y="106">T lkl_evl_rb_insert_color</text>
+<rect class="pb" x="326" y="120" width="176" height="20" rx="10"/><text class="m" x="336" y="134">T lkl_evl_strcmp</text>
+<rect class="pb" x="326" y="148" width="176" height="20" rx="10"/><text class="m" x="336" y="162">T lkl_evl_…</text>
+<path class="cfb" d="M334,112 C330,126 326,136 320,142" stroke-width="1.3"/>
+<circle cx="390" cy="76" r="8.5" fill="#0072B2"/><text x="390" y="79.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="11">2</text>
+<text class="key" x="402" y="80">LKL_ENTRY_POINTS</text>
+<!-- lkl.o 的插头：未定义符号 -->
+<use href="#plug" transform="translate(214,198) rotate(90)"/>
+<text class="cap" x="30" y="232">lkl.o 只剩两个未定义符号</text>
+<text class="m" x="30" y="248">U lkl_printf  U lkl_bug</text>
+<text class="cap" x="30" y="264">由 EVL 的 lkl_host.c 提供</text>
+
+<!-- 段：objcopy rename-section -->
+<text class="capc" x="469" y="192">段</text>
+<rect class="seg"  x="444" y="198" width="50" height="16"/>
+<rect class="seg"  x="444" y="214" width="50" height="16"/>
+<rect class="seg"  x="444" y="230" width="50" height="16"/>
+<rect class="seg"  x="444" y="246" width="50" height="16"/>
+<rect class="segx" x="444" y="262" width="50" height="16"/>
+<rect class="segx" x="444" y="278" width="50" height="16"/>
+<text class="mr" x="436" y="210">.text</text>
+<text class="mr" x="436" y="226">.rodata</text>
+<text class="mr" x="436" y="242">.data</text>
+<text class="mr" x="436" y="258">.bss</text>
+<text class="mr" x="436" y="274"><tspan text-decoration="line-through" fill="#D55E00">.data..percpu</tspan> <tspan fill="#0072B2">.data.lkl_percpu</tspan></text>
+<text class="mr" x="436" y="290"><tspan text-decoration="line-through" fill="#D55E00">.init.data</tspan> <tspan fill="#0072B2">.data.lkl_init</tspan></text>
+<circle cx="494" cy="262" r="8.5" fill="#0072B2"/><text x="494" y="265.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="11">3</text>
+<text class="cap" x="270" y="312">另有 __ksymtab*、__param、.notes 等同样改名</text>
+
+<!-- ================= EVL 侧 ================= -->
+<line class="div" x1="30" y1="330" x2="510" y2="330"/>
+<text class="lbl" x="30" y="352">EVL 侧：改调用点</text>
+
+<!-- diff 卡片 -->
+<rect x="30" y="364" width="250" height="88" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<rect x="30" y="364" width="250" height="18" fill="#EDEDED" stroke="#000" stroke-width="1.2"/>
+<text class="m" x="38" y="377">kernel/evl/memory.c:193</text>
+<rect x="31" y="388" width="248" height="16" fill="#FBE5D6"/>
+<text class="m" x="38" y="400"><tspan fill="#D55E00">-</tspan> rb_insert_color(node, root);</text>
+<rect x="31" y="406" width="248" height="16" fill="#E3EEF7"/>
+<text class="m" x="38" y="418"><tspan fill="#0072B2">+</tspan> lkl_evl_rb_insert_color(node, root);</text>
+<text class="m" x="38" y="442" fill="#333">#include &lt;evl/lkl.h&gt;  共 33 处</text>
+<circle cx="31" cy="364" r="8.5" fill="#0072B2"/><text x="31" y="367.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="11">4</text>
+
+<path class="cf" d="M280,408 L314,408"/>
+<text class="capc" x="297" y="400">编译</text>
+
+<!-- memory.o + 插头 -->
+<rect class="obj" x="316" y="380" width="110" height="56" rx="8"/>
+<text class="bt" x="371" y="404">memory.o</text>
+<text class="bs" x="371" y="422">宿主编译选项</text>
+<use href="#plug" transform="translate(371,436) rotate(90)"/>
+<text class="m" x="384" y="452">U lkl_evl_rb_insert_color</text>
+<!-- 插座：lkl_blob.o 的全局符号 -->
+<rect class="pb" x="290" y="462" width="176" height="20" rx="10"/>
+<circle cx="367" cy="462" r="2" fill="#0072B2"/><circle cx="375" cy="462" r="2" fill="#0072B2"/>
+<text class="m" x="300" y="476">T lkl_evl_rb_insert_color</text>
+<text class="cap" x="472" y="476">← lkl_blob.o</text>
+<circle cx="290" cy="472" r="8.5" fill="#0072B2"/><text x="290" y="475.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="11">5</text>
+<text class="cap" x="300" y="500">链接时插头对上插座；宿主 lib/rbtree.c 的</text>
+<text class="cap" x="300" y="516">rb_insert_color 不再被 EVL 引用</text>
+
+<!-- ================= vmlinux ================= -->
+<text class="lbl" x="546" y="32">链接结果：vmlinux</text>
+<rect class="reg"  x="556" y="44" width="140" height="110"/>
+<rect class="reg"  x="556" y="154" width="140" height="44"/>
+<rect class="reg"  x="556" y="198" width="140" height="96"/>
+<rect class="regx" x="556" y="294" width="140" height="44"/>
+<rect class="regd" x="556" y="338" width="140" height="44"/>
+<rect class="reg"  x="556" y="382" width="140" height="50"/>
+<text class="m" x="562" y="58">.text</text>
+<text class="m" x="562" y="168">.rodata</text>
+<text class="m" x="562" y="212">.data</text>
+<rect x="560" y="300" width="80" height="14" fill="#fff"/><text class="m" x="562" y="311">.data..percpu</text>
+<rect x="560" y="344" width="44" height="14" fill="#fff"/><text class="m" x="562" y="355">.init</text>
+<text class="m" x="562" y="396">.bss</text>
+<!-- EVL 与 LKL 在 .text 中 -->
+<rect x="596" y="62" width="94" height="24" fill="#fff" stroke="#000" stroke-width="1"/>
+<text class="bs" x="643" y="78">EVL 代码</text>
+<rect class="lkl" x="596" y="108" width="94" height="38"/>
+<text class="bs" x="643" y="124">LKL 代码</text>
+<text class="bs" x="643" y="139">（含胶水）</text>
+<path class="cfb" d="M690,74 C726,80 726,118 692,124"/>
+<text class="key" x="716" y="102">运行时</text>
+<text class="key" x="716" y="116">调用</text>
+<rect class="lkl" x="596" y="168" width="94" height="22"/>
+<rect class="lkl" x="596" y="218" width="94" height="20"/>
+<text class="m" x="602" y="231" fill="#0072B2">LKL .data</text>
+<rect class="lkl" x="596" y="242" width="94" height="20"/>
+<text class="m" x="599" y="255" fill="#0072B2" font-size="9.5">.data.lkl_percpu</text>
+<rect class="lkl" x="596" y="266" width="94" height="20"/>
+<text class="m" x="602" y="279" fill="#0072B2">.data.lkl_init</text>
+<rect class="lkl" x="596" y="400" width="94" height="24"/>
+<text class="capr" x="770" y="314">从地址 0 链接</text>
+<text class="capr" x="770" y="362">启动后释放</text>
+<text class="capr" x="770" y="414">启动时清零</text>
+
+<!-- 段映射 -->
+<path class="cfg" d="M494,206 C530,206 540,127 594,127"/>
+<path class="cfg" d="M494,222 C530,222 545,179 594,179"/>
+<path class="cfg" d="M494,238 C530,238 546,228 594,228"/>
+<path class="cfg" d="M494,254 C540,254 540,412 594,412"/>
+<path class="cfb" d="M503,270 C540,270 546,252 594,252" stroke-width="1.5"/>
+<path class="cfb" d="M494,286 C540,286 546,276 594,276" stroke-width="1.5"/>
+<path class="cfr" d="M494,274 C530,290 545,316 554,316"/>
+<path class="cfr" d="M494,290 C520,330 540,358 554,358"/>
+<g stroke="#D55E00" stroke-width="2"><line x1="532" y1="308" x2="540" y2="316"/><line x1="532" y1="316" x2="540" y2="308"/><line x1="530" y1="350" x2="538" y2="358"/><line x1="530" y1="358" x2="538" y2="350"/></g>
+<text class="red" x="542" y="452">不改名的后果：</text>
+<text class="cap" x="542" y="468">per-cpu 变量被分到接近 0</text>
+<text class="cap" x="542" y="484">的地址；init 数据被释放</text>
+
+<!-- ================= 图例 ================= -->
+<line class="div" x1="30" y1="534" x2="750" y2="534"/>
+<rect class="pg" x="30" y="548" width="30" height="14" rx="7"/><text class="cap" x="66" y="559">局部符号 t</text>
+<rect class="pb" x="140" y="548" width="30" height="14" rx="7"/><text class="cap" x="176" y="559">全局符号 T（插座）</text>
+<use href="#plug" transform="translate(290,555)"/><text class="cap" x="314" y="559">未定义符号 U（插头）</text>
+<rect class="segx" x="430" y="548" width="22" height="14"/><text class="cap" x="458" y="559">会被宿主特殊处理的段</text>
+<circle cx="604" cy="555" r="7.5" fill="#0072B2"/><text x="604" y="558.8" text-anchor="middle" fill="#fff" font-weight="600" font-size="10">1</text><text class="cap" x="617" y="559">helper 迁移的关键步骤</text>
+<path class="cf" d="M30,582 L58,582"/><text class="cap" x="64" y="586">编译</text>
+<path class="cfg" d="M120,582 L148,582"/><text class="cap" x="154" y="586">段原名落位</text>
+<path class="cfb" d="M240,582 L268,582"/><text class="cap" x="274" y="586">改名后落位 / 调用</text>
+<path class="cfr" d="M390,582 L418,582"/><text class="cap" x="424" y="586">不改名会落入的位置</text>
+<rect class="lkl" x="560" y="575" width="22" height="13"/><text class="cap" x="588" y="586">来自 LKL 的内容</text>
+</svg>

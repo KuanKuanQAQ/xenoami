@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1184" height="650" viewBox="0 0 1184 650" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif">
+<!-- 改后（方案三）：可信端自持状态，不可信端只报告结果 -->
+<rect x="0" y="0" width="1184" height="650" rx="0" fill="#FFFFFF"/>
+<rect x="4" y="8" width="1176" height="144" rx="8" fill="#FDF3EC"/>
+<rect x="4" y="164" width="1176" height="236" rx="8" fill="#F5F5F5"/>
+<rect x="4" y="412" width="1176" height="200" rx="8" fill="#EEF3F8"/>
+<text x="18" y="30" font-size="14" fill="#D55E00" text-anchor="start" font-weight="bold">Linux 对象：不可信</text>
+<text x="18" y="48" font-size="11" fill="#666666" text-anchor="start">红字：会改写它的函数</text>
+<text x="18" y="374" font-size="14" fill="#000000" text-anchor="start" font-weight="bold">inband 写路径（非实时域）</text>
+<text x="18" y="391" font-size="11" fill="#666666" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">xbuf_write()</text>
+<text x="18" y="602" font-size="14" fill="#0072B2" text-anchor="start" font-weight="bold">oob 对象：应当可信</text>
+<path d="M237,25 h18 l8,8 v26 h-26 z" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.4"/>
+<path d="M255,25 v8 h8" fill="none" stroke="#D55E00" stroke-width="1.2"/>
+<line x1="242" y1="40" x2="258" y2="40" stroke="#D55E00" stroke-width="1"/>
+<line x1="242" y1="46" x2="258" y2="46" stroke="#D55E00" stroke-width="1"/>
+<line x1="242" y1="52" x2="258" y2="52" stroke="#D55E00" stroke-width="1"/>
+<text x="250" y="78" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">struct file</text>
+<text x="250" y="98" font-size="11" fill="#333333" text-anchor="middle">f_flags · private_data</text>
+<text x="250" y="140" font-size="12" fill="#D55E00" text-anchor="middle">fcntl · dup2 · close</text>
+<circle cx="420" cy="34" r="7" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.4"/>
+<path d="M407,58 q0,-15 13,-15 q13,0 13,15 z" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.4"/>
+<text x="420" y="78" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">current</text>
+<text x="420" y="98" font-size="11" fill="#333333" text-anchor="middle">signal_pending · 状态</text>
+<text x="420" y="140" font-size="12" fill="#D55E00" text-anchor="middle">kill · ptrace · 调度器</text>
+<line x1="556" y1="32" x2="624" y2="32" stroke="#D55E00" stroke-width="2"/>
+<line x1="570" y1="32" x2="570" y2="40" stroke="#D55E00" stroke-width="1"/>
+<circle cx="570" cy="47" r="7" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.3"/>
+<line x1="590" y1="32" x2="590" y2="40" stroke="#D55E00" stroke-width="1"/>
+<circle cx="590" cy="47" r="7" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.3"/>
+<line x1="610" y1="32" x2="610" y2="40" stroke="#D55E00" stroke-width="1"/>
+<circle cx="610" cy="47" r="7" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.3"/>
+<text x="590" y="78" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">wait_queue_head</text>
+<text x="590" y="140" font-size="12" fill="#D55E00" text-anchor="middle">wait_event · wake_up</text>
+<rect x="765" y="24" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="778" y="24" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="791" y="24" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="804" y="24" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="765" y="37" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="778" y="37" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="791" y="37" width="11" height="11" rx="0" fill="#D55E00" stroke="#D55E00" stroke-width="1"/>
+<rect x="804" y="37" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="765" y="50" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="778" y="50" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="791" y="50" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<rect x="804" y="50" width="11" height="11" rx="0" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<text x="790" y="78" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">u_buf 的页表 / VMA</text>
+<text x="790" y="98" font-size="11" fill="#333333" text-anchor="middle">用户缓冲区</text>
+<text x="790" y="140" font-size="12" fill="#D55E00" text-anchor="middle">mmap · munmap · userfaultfd</text>
+<path d="M1063,24 L1051,44 h9 l-4,16 l14,-21 h-9 l5,-15 z" fill="#FFFFFF" stroke="#D55E00" stroke-width="1.4"/>
+<text x="1060" y="78" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">合成中断处理</text>
+<text x="1060" y="98" font-size="11" fill="#333333" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">evl_notify_handler()</text>
+<text x="1060" y="140" font-size="12" fill="#D55E00" text-anchor="middle">Linux 中断子系统</text>
+<line x1="36" y1="290" x2="693" y2="290" stroke="#999999" stroke-width="1.4"/>
+<polygon points="700.0,290.0 692.0,286.0 692.0,294.0" fill="#999999"/>
+<text x="105" y="216" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">满则睡眠</text>
+<text x="105" y="236" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">wait_event_interruptible(</text>
+<text x="105" y="251" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">ib_wait, …)</text>
+<circle cx="105" cy="290" r="11" fill="#333333"/>
+<text x="105" y="294.5" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="bold">0</text>
+<text x="280" y="216" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">取写位置</text>
+<text x="280" y="236" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">off = ib_wroff</text>
+<text x="280" y="251" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">（不可信侧自己的副本）</text>
+<circle cx="280" cy="290" r="11" fill="#333333"/>
+<text x="280" y="294.5" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="bold">1</text>
+<text x="460" y="216" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">拷贝数据</text>
+<text x="460" y="236" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">copy_from_user(</text>
+<text x="460" y="251" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">bufmem + off, u_buf)</text>
+<circle cx="460" cy="290" r="11" fill="#333333"/>
+<text x="460" y="294.5" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="bold">2</text>
+<text x="640" y="216" font-size="13" fill="#000000" text-anchor="middle" font-weight="bold">报告结果</text>
+<text x="640" y="236" font-size="11" fill="#222222" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">xbuf_gate_commit(h, n)</text>
+<circle cx="640" cy="290" r="11" fill="#333333"/>
+<text x="640" y="294.5" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="bold">3</text>
+<text x="18" y="315" font-size="11" fill="#2E7D32" text-anchor="start" font-weight="bold">持 oob 锁</text>
+<text x="105" y="315" font-size="11" fill="#2E7D32" text-anchor="start">无：全程只用 inband 自己的锁和等待队列</text>
+<rect x="418" y="334" width="84" height="12" rx="0" fill="#FFFFFF" stroke="#999999" stroke-width="1"/>
+<line x1="418" y1="334" x2="418" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="418" y1="341" x2="425" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="420" y1="346" x2="432" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="427" y1="346" x2="439" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="434" y1="346" x2="446" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="441" y1="346" x2="453" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="448" y1="346" x2="460" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="455" y1="346" x2="467" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="462" y1="346" x2="474" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="469" y1="346" x2="481" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="476" y1="346" x2="488" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="483" y1="346" x2="495" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="490" y1="346" x2="502" y2="334" stroke="#999999" stroke-width="0.9"/>
+<line x1="497" y1="346" x2="502" y2="341" stroke="#999999" stroke-width="0.9"/>
+<text x="460" y="364" font-size="11" fill="#666666" text-anchor="middle" font-weight="bold">缺页只拖慢它自己</text>
+<line x1="250" y1="150" x2="105.669" y2="200.035" stroke="#888888" stroke-width="1.2" stroke-dasharray="4 3"/>
+<polygon points="100.0,202.0 107.8,203.0 105.5,196.4" fill="#888888"/>
+<line x1="420" y1="150" x2="121.914" y2="200.988" stroke="#888888" stroke-width="1.2" stroke-dasharray="4 3"/>
+<polygon points="116.0,202.0 123.5,204.3 122.3,197.4" fill="#888888"/>
+<line x1="590" y1="150" x2="137.962" y2="201.323" stroke="#888888" stroke-width="1.2" stroke-dasharray="4 3"/>
+<polygon points="132.0,202.0 139.4,204.7 138.6,197.7" fill="#888888"/>
+<line x1="790" y1="150" x2="475.922" y2="201.038" stroke="#888888" stroke-width="1.2" stroke-dasharray="4 3"/>
+<polygon points="470.0,202.0 477.5,204.3 476.3,197.4" fill="#888888"/>
+<text x="760" y="214" font-size="13" fill="#000000" text-anchor="start" font-weight="bold">不可信端还能做什么</text>
+<rect x="760" y="229" width="120" height="22" rx="11" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<text x="820" y="244" font-size="12" fill="#D55E00" text-anchor="middle" font-weight="bold">报告假的 n</text>
+<line x1="886" y1="240" x2="910" y2="240" stroke="#555555" stroke-width="1.3"/>
+<polygon points="916.0,240.0 909.0,236.5 909.0,243.5" fill="#555555"/>
+<text x="924" y="244" font-size="12" fill="#000000" text-anchor="start">截断到空闲空间内：只影响内容</text>
+<rect x="760" y="263" width="120" height="22" rx="11" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<text x="820" y="278" font-size="12" fill="#D55E00" text-anchor="middle" font-weight="bold">不停地调门</text>
+<line x1="886" y1="274" x2="910" y2="274" stroke="#555555" stroke-width="1.3"/>
+<polygon points="916.0,274.0 909.0,270.5 909.0,277.5" fill="#555555"/>
+<text x="924" y="278" font-size="12" fill="#000000" text-anchor="start">只在条件变化时唤醒；门内有界</text>
+<rect x="760" y="297" width="120" height="22" rx="11" fill="#FBEBE1" stroke="#D55E00" stroke-width="1"/>
+<text x="820" y="312" font-size="12" fill="#D55E00" text-anchor="middle" font-weight="bold">从不调门</text>
+<line x1="886" y1="308" x2="910" y2="308" stroke="#555555" stroke-width="1.3"/>
+<polygon points="916.0,308.0 909.0,304.5 909.0,311.5" fill="#555555"/>
+<text x="924" y="312" font-size="12" fill="#000000" text-anchor="start">oob 读者等待超时，告警</text>
+<rect x="530" y="424" width="290" height="150" rx="8" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.6"/>
+<text x="544" y="446" font-size="12" fill="#0072B2" text-anchor="start" font-weight="bold">门 xbuf_gate_commit()：可信代码执行</text>
+<path d="M550,482 v-8 a8,8 0 0 1 16,0 v8" fill="none" stroke="#0072B2" stroke-width="2.2"/>
+<rect x="545" y="482" width="26" height="20" rx="3" fill="#0072B2"/>
+<circle cx="558" cy="491" r="3" fill="#FFFFFF"/>
+<text x="586" y="470" font-size="11" fill="#222222" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">lock(可信锁)</text>
+<text x="586" y="488" font-size="11" fill="#222222" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">n = min(n, bufsz − fill)</text>
+<text x="586" y="506" font-size="11" fill="#222222" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">wroff += n;  fill += n</text>
+<text x="586" y="524" font-size="11" fill="#222222" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">读者在等 → evl_flush_wait()</text>
+<text x="586" y="542" font-size="11" fill="#222222" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">unlock</text>
+<text x="544" y="564" font-size="11" fill="#2E7D32" text-anchor="start" font-weight="bold">有界 · 不碰用户内存 · 不调不可信代码</text>
+<line x1="640" y1="302" x2="640" y2="414" stroke="#333333" stroke-width="2"/>
+<polygon points="640.0,422.0 644.5,413.0 635.5,413.0" fill="#333333"/>
+<text x="648" y="410" font-size="11" fill="#333333" text-anchor="start" font-weight="bold">只传入 n</text>
+<path d="M330.0,462.0 A50,50 0 0 1 355.0,468.7 L344.0,487.8 A28,28 0 0 0 330.0,484.0 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M355.0,468.7 A50,50 0 0 1 373.3,487.0 L354.2,498.0 A28,28 0 0 0 344.0,487.8 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M373.3,487.0 A50,50 0 0 1 380.0,512.0 L358.0,512.0 A28,28 0 0 0 354.2,498.0 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M380.0,512.0 A50,50 0 0 1 373.3,537.0 L354.2,526.0 A28,28 0 0 0 358.0,512.0 Z" fill="#9CC3E0" stroke="#0072B2" stroke-width="1"/>
+<path d="M373.3,537.0 A50,50 0 0 1 355.0,555.3 L344.0,536.2 A28,28 0 0 0 354.2,526.0 Z" fill="#9CC3E0" stroke="#0072B2" stroke-width="1"/>
+<path d="M355.0,555.3 A50,50 0 0 1 330.0,562.0 L330.0,540.0 A28,28 0 0 0 344.0,536.2 Z" fill="#9CC3E0" stroke="#0072B2" stroke-width="1"/>
+<path d="M330.0,562.0 A50,50 0 0 1 305.0,555.3 L316.0,536.2 A28,28 0 0 0 330.0,540.0 Z" fill="#9CC3E0" stroke="#0072B2" stroke-width="1"/>
+<path d="M305.0,555.3 A50,50 0 0 1 286.7,537.0 L305.8,526.0 A28,28 0 0 0 316.0,536.2 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M286.7,537.0 A50,50 0 0 1 280.0,512.0 L302.0,512.0 A28,28 0 0 0 305.8,526.0 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M280.0,512.0 A50,50 0 0 1 286.7,487.0 L305.8,498.0 A28,28 0 0 0 302.0,512.0 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M286.7,487.0 A50,50 0 0 1 305.0,468.7 L316.0,487.8 A28,28 0 0 0 305.8,498.0 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<path d="M305.0,468.7 A50,50 0 0 1 330.0,462.0 L330.0,484.0 A28,28 0 0 0 316.0,487.8 Z" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<line x1="402" y1="512" x2="388" y2="512" stroke="#0072B2" stroke-width="1.6"/>
+<polygon points="382.0,512.0 389.0,515.5 389.0,508.5" fill="#0072B2"/>
+<text x="408" y="516" font-size="11" fill="#0072B2" text-anchor="start" font-weight="bold" font-family="Consolas, Menlo, Courier New, monospace">rdoff</text>
+<line x1="294" y1="574.354" x2="301" y2="562.229" stroke="#0072B2" stroke-width="1.6"/>
+<polygon points="304.0,557.0 297.5,561.3 303.5,564.8" fill="#0072B2"/>
+<text x="291" y="583.55" font-size="11" fill="#0072B2" text-anchor="end" font-weight="bold" font-family="Consolas, Menlo, Courier New, monospace">wroff</text>
+<text x="330" y="516" font-size="10" fill="#333333" text-anchor="middle" font-family="Consolas, Menlo, Courier New, monospace">bufmem</text>
+<text x="30" y="470" font-size="12" fill="#0072B2" text-anchor="start" font-weight="bold">下标、fill</text>
+<text x="30" y="488" font-size="12" fill="#0072B2" text-anchor="start" font-weight="bold">只由可信代码修改</text>
+<line x1="450" y1="374" x2="361.003" y2="461.104" stroke="#888888" stroke-width="1.4"/>
+<polygon points="356.0,466.0 364.5,463.3 358.9,457.5" fill="#888888"/>
+<text x="414" y="428" font-size="11" fill="#666666" text-anchor="start">写数据</text>
+<line x1="530" y1="470" x2="383.982" y2="480.498" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="377.0,481.0 385.3,484.4 384.7,476.4" fill="#0072B2"/>
+<text x="450" y="464" font-size="11" fill="#0072B2" text-anchor="start" font-weight="bold">更新</text>
+<line x1="926" y1="448" x2="994" y2="448" stroke="#0072B2" stroke-width="2"/>
+<line x1="940" y1="448" x2="940" y2="456" stroke="#0072B2" stroke-width="1"/>
+<circle cx="940" cy="463" r="7" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.3"/>
+<circle cx="960" cy="470" r="13" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.6"/>
+<text x="960" y="474.5" font-size="11" fill="#0072B2" text-anchor="middle" font-weight="bold">RT</text>
+<text x="975" y="461" font-size="10" fill="#666666" text-anchor="start" font-style="italic">z</text>
+<text x="981" y="454" font-size="12" fill="#666666" text-anchor="start" font-style="italic">z</text>
+<circle cx="1004" cy="440" r="11" fill="#FFFFFF" stroke="#B07A00" stroke-width="1.6"/>
+<line x1="1004" y1="440" x2="1004" y2="433" stroke="#B07A00" stroke-width="1.6"/>
+<line x1="1004" y1="440" x2="1009" y2="443" stroke="#B07A00" stroke-width="1.6"/>
+<text x="960" y="505" font-size="11" fill="#0072B2" text-anchor="middle" font-weight="bold" font-family="Consolas, Menlo, Courier New, monospace">obnd.i_event</text>
+<text x="960" y="521" font-size="11" fill="#B07A00" text-anchor="middle" font-weight="bold">带超时等待，超时则告警</text>
+<line x1="820" y1="500" x2="937.128" y2="477.33" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="944.0,476.0 935.4,473.6 936.9,481.4" fill="#0072B2"/>
+<text x="868" y="476" font-size="11" fill="#0072B2" text-anchor="start" font-weight="bold">唤醒</text>
+<rect x="1088" y="540" width="76" height="40" rx="4" fill="#FFFFFF" stroke="#0072B2" stroke-width="1"/>
+<rect x="1096" y="550" width="16" height="20" rx="2" fill="#E3EEF7" stroke="#0072B2" stroke-width="1"/>
+<rect x="1118" y="550" width="16" height="20" rx="2" fill="#E3EEF7" stroke="#0072B2" stroke-width="1"/>
+<rect x="1140" y="550" width="16" height="20" rx="2" fill="#E3EEF7" stroke="#0072B2" stroke-width="1"/>
+<text x="1126" y="596" font-size="11" fill="#0072B2" text-anchor="middle">可信每 CPU 链表</text>
+<path d="M973,470 L1126,470 L1126,534" fill="none" stroke="#0072B2" stroke-width="1.3"/>
+<polygon points="1126.0,540.0 1129.5,533.0 1122.5,533.0" fill="#0072B2"/>
+<path d="M1164,560 L1172,560 L1172,42 L1099,42" fill="none" stroke="#0072B2" stroke-width="1.4" stroke-dasharray="5 3"/>
+<polygon points="1092.0,42.0 1100.0,46.0 1100.0,38.0" fill="#0072B2"/>
+<text x="845" y="550" font-size="11" fill="#0072B2" text-anchor="start">读者读走数据后：</text>
+<text x="845" y="566" font-size="11" fill="#0072B2" text-anchor="start" font-family="Consolas, Menlo, Courier New, monospace">evl_inband_notify_post()</text>
+<text x="845" y="582" font-size="11" fill="#0072B2" text-anchor="start">只记录，发合成中断；</text>
+<text x="845" y="598" font-size="11" fill="#0072B2" text-anchor="start">inband 取走后自己 wake_up</text>
+<line x1="18" y1="632" x2="46" y2="632" stroke="#0072B2" stroke-width="1.8"/>
+<polygon points="52.0,632.0 45.0,628.5 45.0,635.5" fill="#0072B2"/>
+<text x="60" y="636" font-size="12" fill="#333333" text-anchor="start">可信代码修改可信状态</text>
+<line x1="220" y1="632" x2="248" y2="632" stroke="#333333" stroke-width="1.8"/>
+<polygon points="254.0,632.0 247.0,628.5 247.0,635.5" fill="#333333"/>
+<text x="262" y="636" font-size="12" fill="#333333" text-anchor="start">不可信端只传入数值</text>
+<line x1="409" y1="632" x2="437" y2="632" stroke="#888888" stroke-width="1.3" stroke-dasharray="4 3"/>
+<polygon points="443.0,632.0 436.0,628.5 436.0,635.5" fill="#888888"/>
+<text x="451" y="636" font-size="12" fill="#333333" text-anchor="start">依赖 Linux 对象</text>
+<line x1="624" y1="632" x2="652" y2="632" stroke="#0072B2" stroke-width="1.3" stroke-dasharray="4 3"/>
+<polygon points="658.0,632.0 651.0,628.5 651.0,635.5" fill="#0072B2"/>
+<text x="666" y="636" font-size="12" fill="#333333" text-anchor="start">通知：可信端只记录，不调用</text>
+<line x1="865" y1="632" x2="893" y2="632" stroke="#888888" stroke-width="1.8"/>
+<polygon points="899.0,632.0 892.0,628.5 892.0,635.5" fill="#888888"/>
+<text x="907" y="636" font-size="12" fill="#333333" text-anchor="start">写共享数据</text>
+</svg>

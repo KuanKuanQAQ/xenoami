@@ -1,0 +1,7 @@
+# 暂不纳入父仓库
+/build/
+/patches/
+/tools/
+/tmp
+/.ffrender/
+/docs/lrk/papers/*.pdf

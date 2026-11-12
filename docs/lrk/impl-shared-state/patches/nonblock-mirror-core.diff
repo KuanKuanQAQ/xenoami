@@ -1,0 +1,137 @@
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index c2ca18eb8d0c..c9300b7e4d33 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -82,6 +82,7 @@ static int setfl(int fd, struct file * filp, unsigned int arg)
+ 	spin_lock(&filp->f_lock);
+ 	filp->f_flags = (arg & SETFL_MASK) | (filp->f_flags & ~SETFL_MASK);
+ 	filp->f_iocb_flags = iocb_flags(filp);
++	handle_inband_fflags_change(filp);
+ 	spin_unlock(&filp->f_lock);
+ 
+  out:
+diff --git a/fs/ioctl.c b/fs/ioctl.c
+index 7234773e7b1d..24ee4e19e2a4 100644
+--- a/fs/ioctl.c
++++ b/fs/ioctl.c
+@@ -357,6 +357,7 @@ static int ioctl_fionbio(struct file *filp, int __user *argp)
+ 		filp->f_flags |= flag;
+ 	else
+ 		filp->f_flags &= ~flag;
++	handle_inband_fflags_change(filp);
+ 	spin_unlock(&filp->f_lock);
+ 	return error;
+ }
+diff --git a/include/dovetail/fs.h b/include/dovetail/fs.h
+index b3d63dee2305..f7b873025603 100644
+--- a/include/dovetail/fs.h
++++ b/include/dovetail/fs.h
+@@ -28,6 +28,15 @@ static inline void init_oob_fstate(struct oob_file_state *state)
+ 	state->data = NULL;
+ }
+ 
++struct file;
++
++/*
++ * Called in-band with filp->f_lock held each time the status flags
++ * of @filp change after open, so that a companion core may mirror
++ * them. Weak default does nothing.
++ */
++void handle_inband_fflags_change(struct file *filp);
++
+ #else  /* !CONFIG_DOVETAIL */
+ 
+ struct oob_file_state {
+@@ -36,6 +45,11 @@ struct oob_file_state {
+ static inline void init_oob_fstate(struct oob_file_state *state)
+ { }
+ 
++struct file;
++
++static inline void handle_inband_fflags_change(struct file *filp)
++{ }
++
+ struct irq_work;
+ 
+ static inline void __schedule_inband_fput(struct irq_work *irq_work)
+diff --git a/include/evl/file.h b/include/evl/file.h
+index aa8aec01ea2f..f3f3025dbac9 100644
+--- a/include/evl/file.h
++++ b/include/evl/file.h
+@@ -20,6 +20,7 @@ struct evl_file {
+ 	struct evl_crossing crossing;
+ 	struct list_head watchpoints; /* watchpoint->node.next */
+ 	hard_spinlock_t lock;	      /* guards ->watchpoints */
++	bool nonblock;		      /* mirrors O_NONBLOCK in filp->f_flags */
+ };
+ 
+ struct evl_file_binding {
+@@ -27,6 +28,15 @@ struct evl_file_binding {
+ 	struct evl_element *element;
+ };
+ 
++/*
++ * Out-of-band code reads the O_NONBLOCK mirror instead of
++ * filp->f_flags, which the in-band side may update at any time.
++ */
++static inline bool evl_file_nonblock(struct evl_file *efilp)
++{
++	return READ_ONCE(efilp->nonblock);
++}
++
+ int evl_open_file(struct evl_file *efilp,
+ 		struct file *filp);
+ 
+diff --git a/kernel/dovetail.c b/kernel/dovetail.c
+index 02c8b2ee28e2..fd25b2ddc267 100644
+--- a/kernel/dovetail.c
++++ b/kernel/dovetail.c
+@@ -7,6 +7,7 @@
+ #include <linux/sched/signal.h>
+ #include <linux/irq_pipeline.h>
+ #include <linux/dovetail.h>
++#include <linux/fs.h>
+ #include <linux/prctl.h>
+ #include <asm/unistd.h>
+ #include <asm/syscall.h>
+@@ -82,6 +83,10 @@ void __weak handle_oob_mayday(struct pt_regs *regs)
+ {
+ }
+ 
++void __weak handle_inband_fflags_change(struct file *filp)
++{
++}
++
+ static inline
+ void call_mayday(struct thread_info *ti, struct pt_regs *regs)
+ {
+diff --git a/kernel/evl/file.c b/kernel/evl/file.c
+index 81284dd22073..a3429a8c382c 100644
+--- a/kernel/evl/file.c
++++ b/kernel/evl/file.c
+@@ -62,11 +62,25 @@ int evl_open_file(struct evl_file *efilp, struct file *filp)
+ 	evl_init_crossing(&efilp->crossing);
+ 	INIT_LIST_HEAD(&efilp->watchpoints);
+ 	raw_spin_lock_init(&efilp->lock);
++	efilp->nonblock = !!(filp->f_flags & O_NONBLOCK);
+ 
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(evl_open_file);
+ 
++/*
++ * Dovetail hook, called in-band with filp->f_lock held after
++ * fcntl(F_SETFL) or ioctl(FIONBIO) changed filp->f_flags. f_lock
++ * serializes concurrent updates of the mirror.
++ */
++void handle_inband_fflags_change(struct file *filp)
++{
++	struct evl_file *efilp = filp->f_oob_state.data;
++
++	if (efilp)
++		WRITE_ONCE(efilp->nonblock, !!(filp->f_flags & O_NONBLOCK));
++}
++
+ /**
+  * evl_release_file - Drop an oob-capable file
+  *

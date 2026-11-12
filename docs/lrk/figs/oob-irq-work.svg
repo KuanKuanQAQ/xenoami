@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 650" width="920" height="650"
+     font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<!-- oob 到 inband 的交接：proxy 写路径上的 irq_work（两次接力、三个信箱） -->
+<defs>
+  <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#000"/></marker>
+  <marker id="ahb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0072B2"/></marker>
+  <marker id="ahg" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#777"/></marker>
+</defs>
+<style>
+  text  { fill:#000; }
+  .lbl  { font-size:12.5px; font-weight:bold; }
+  .ttll { font-size:13.5px; font-weight:bold; }
+  .mbt  { font-size:12px; font-weight:bold; }
+  .cap  { font-size:11px; fill:#333; }
+  .capc { font-size:11px; fill:#333; text-anchor:middle; }
+  .capr { font-size:11px; fill:#333; text-anchor:end; }
+  .red  { font-size:11px; fill:#D55E00; font-weight:bold; }
+  .m    { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; }
+  .mc   { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; text-anchor:middle; }
+  .mr   { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; text-anchor:end; }
+  .sn   { fill:#000; }
+  .snt  { fill:#fff; font-size:10px; font-weight:bold; text-anchor:middle; }
+  .fn   { fill:#fff; stroke:#000; stroke-width:1.2; }
+  .pb   { fill:#E3EEF7; stroke:#0072B2; stroke-width:1.4; }
+  .pg   { fill:#EDEDED; stroke:#777; stroke-width:1; }
+  .cf   { fill:none; stroke:#000; stroke-width:1.3; marker-end:url(#ah); }
+  .cfb  { fill:none; stroke:#0072B2; stroke-width:1.8; marker-end:url(#ahb); }
+  .cfg  { fill:none; stroke:#777; stroke-width:1; marker-end:url(#ahg); }
+</style>
+<rect width="920" height="650" fill="#fff"/>
+
+<text class="ttll" x="20" y="28">oob → inband 交接：proxy 写路径上的 irq_work（两次接力、三个信箱）</text>
+
+<!-- ================= 泳道底色 ================= -->
+<rect x="10" y="44" width="900" height="122" fill="#FDF1EA"/>
+<rect x="10" y="306" width="900" height="112" fill="#EEF3F8"/>
+<rect x="10" y="496" width="900" height="104" fill="#F2F2F2"/>
+
+<text class="lbl" x="22" y="72">A  oob</text>
+<text class="cap" x="22" y="90">实时线程</text>
+<text class="cap" x="22" y="106">只能无锁操作</text>
+<text class="cap" x="22" y="122">不等待、不睡眠</text>
+
+<text class="lbl" x="22" y="212">共享信箱</text>
+<text class="cap" x="22" y="230">oob 放进去</text>
+<text class="cap" x="22" y="246">inband 取出来</text>
+
+<text class="lbl" x="22" y="334">B  inband</text>
+<text class="cap" x="22" y="352">中断上下文</text>
+<text class="cap" x="22" y="368">能拿自旋锁</text>
+<text class="cap" x="22" y="384">不能睡眠</text>
+
+<text class="lbl" x="22" y="452">工作队列</text>
+
+<text class="lbl" x="22" y="524">C  inband</text>
+<text class="cap" x="22" y="542">进程上下文</text>
+<text class="cap" x="22" y="558">kworker 线程</text>
+<text class="cap" x="22" y="574">能睡眠、走 VFS</text>
+
+<!-- ================= A：oob 线程，从左到右 ================= -->
+<rect class="fn" x="146" y="92" width="86" height="26" rx="13"/>
+<text class="mc" x="189" y="109">oob_write()</text>
+<text class="capc" x="189" y="138">用户调用</text>
+<path class="cf" d="M232,105 L264,105"/>
+
+<!-- 步骤 1：环形缓冲 -->
+<circle cx="300" cy="105" r="30" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<circle cx="300" cy="105" r="22" fill="none" stroke="#BBB" stroke-width="16" stroke-dasharray="40 98.2" transform="rotate(-90 300 105)"/>
+<circle cx="300" cy="105" r="14" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<g stroke="#000" stroke-width="0.8">
+  <line x1="300" y1="75" x2="300" y2="91"/><line x1="321.2" y1="83.8" x2="309.9" y2="95.1"/>
+  <line x1="330" y1="105" x2="314" y2="105"/><line x1="321.2" y1="126.2" x2="309.9" y2="114.9"/>
+  <line x1="300" y1="135" x2="300" y2="119"/><line x1="278.8" y1="126.2" x2="290.1" y2="114.9"/>
+  <line x1="270" y1="105" x2="286" y2="105"/><line x1="278.8" y1="83.8" x2="290.1" y2="95.1"/>
+</g>
+<circle class="sn" cx="268" cy="72" r="8"/><text class="snt" x="268" y="75.5">1</text>
+<text class="capc" x="300" y="150">数据拷进</text>
+<text class="mc" x="300" y="162">ring->bufmem</text>
+<path class="cf" d="M332,105 L366,105"/>
+
+<!-- 步骤 2：包裹 relay_work -->
+<rect class="fn" x="370" y="82" width="96" height="48" rx="3"/>
+<rect class="pb" x="378" y="89" width="80" height="15" rx="3"/>
+<text class="mc" x="418" y="100">irq_work</text>
+<rect class="pg" x="378" y="108" width="80" height="15" rx="3"/>
+<text class="mc" x="418" y="119">wq_work</text>
+<circle class="sn" cx="370" cy="72" r="8"/><text class="snt" x="370" y="75.5">2</text>
+<text class="mc" x="418" y="146">relay_work</text>
+<text class="capc" x="418" y="160">写上 wq，引用 +1</text>
+<path class="cf" d="M466,105 L496,105"/>
+
+<!-- 步骤 3：入队信箱① -->
+<rect class="fn" x="500" y="90" width="130" height="30"/>
+<text class="mc" x="565" y="109">irq_work_queue</text>
+<circle class="sn" cx="500" cy="80" r="8"/><text class="snt" x="500" y="83.5">3</text>
+<path class="cfb" d="M565,120 L565,194"/>
+<text class="m" x="572" y="150">llist_add</text>
+<text class="cap" x="572" y="164">挂上包裹</text>
+<path class="cf" d="M630,105 L658,105"/>
+
+<!-- 步骤 4：按门铃，信箱② -->
+<rect class="fn" x="662" y="90" width="150" height="30"/>
+<text class="mc" x="737" y="109">irq_local_work_raise</text>
+<circle class="sn" cx="662" cy="80" r="8"/><text class="snt" x="662" y="83.5">4</text>
+<path class="cf" d="M770,120 L770,194"/>
+<text class="mr" x="762" y="150">irq_post_inband</text>
+<text class="capr" x="762" y="164">设一个位</text>
+<text class="cap" x="818" y="98">返回，不等待</text>
+
+<!-- U 形转弯：oob 让出 CPU，inband 恢复 -->
+<path class="cf" d="M812,105 L893,105 L893,362 L870,362" stroke-dasharray="5 3"/>
+<text class="cap" x="902" y="150" transform="rotate(90 902 150)">oob 让出 CPU，inband 恢复运行</text>
+
+<!-- ================= 信箱① raised_list ================= -->
+<rect x="420" y="196" width="230" height="96" rx="6" fill="#fff" stroke="#D55E00" stroke-width="1.6" stroke-dasharray="6 3"/>
+<text class="mbt" x="430" y="213">信箱① raised_list</text>
+<text class="cap" x="430" y="229">Linux irq_work · 每 CPU · 放包裹</text>
+<rect class="fn" x="430" y="244" width="40" height="22"/>
+<text class="mc" x="450" y="259">first</text>
+<path class="cf" d="M470,255 L486,255"/>
+<rect class="pb" x="490" y="244" width="54" height="22"/>
+<text class="mc" x="517" y="259">irq_work</text>
+<path class="cf" d="M544,255 L558,255"/>
+<rect class="pg" x="562" y="244" width="38" height="22"/>
+<text class="mc" x="581" y="259">work</text>
+<path class="cf" d="M600,255 L612,255"/>
+<text class="m" x="615" y="259">NULL</text>
+<text class="cap" x="430" y="284">单链表，cmpxchg 换表头，无锁</text>
+
+<!-- ================= 信箱② inband 中断日志 ================= -->
+<rect x="680" y="196" width="200" height="96" rx="6" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<text class="mbt" x="690" y="213">信箱② inband 中断日志</text>
+<text class="cap" x="690" y="229">Dovetail · 每 CPU · 只记位</text>
+<g fill="#fff" stroke="#000" stroke-width="1">
+  <rect x="690" y="242" width="18" height="16"/><rect x="708" y="242" width="18" height="16" fill="#BBB"/>
+  <rect x="726" y="242" width="18" height="16"/><rect x="744" y="242" width="18" height="16"/>
+  <rect x="762" y="242" width="18" height="16"/><rect x="780" y="242" width="18" height="16"/>
+  <rect x="798" y="242" width="18" height="16" fill="#0072B2"/><rect x="816" y="242" width="18" height="16"/>
+  <rect x="834" y="242" width="18" height="16"/><rect x="852" y="242" width="18" height="16"/>
+</g>
+<text class="capc" x="717" y="272">其他 irq</text>
+<text class="mc" x="807" y="272">inband_work_sirq</text>
+
+<!-- ================= B：inband 中断上下文，从右到左 ================= -->
+<!-- 步骤 5 -->
+<rect class="fn" x="706" y="346" width="160" height="32"/>
+<text class="mc" x="786" y="366">inband_work_interrupt</text>
+<circle class="sn" cx="866" cy="336" r="8"/><text class="snt" x="866" y="339.5">5</text>
+<path class="cf" d="M807,292 L807,342"/>
+<text class="capr" x="800" y="322">Dovetail 回放：取位、清位</text>
+<text class="capc" x="786" y="396">调这个 sirq 的处理函数</text>
+<path class="cf" d="M706,362 L642,362"/>
+
+<!-- 步骤 6 -->
+<rect class="fn" x="470" y="346" width="168" height="32"/>
+<text class="mc" x="554" y="366">irq_work_run</text>
+<circle class="sn" cx="638" cy="336" r="8"/><text class="snt" x="638" y="339.5">6</text>
+<path class="cfb" d="M540,292 L540,342"/>
+<text class="m" x="548" y="316">llist_del_all</text>
+<text class="cap" x="548" y="330">整条摘下</text>
+<text class="capc" x="554" y="396">对每个包裹调 irq_work.func</text>
+<path class="cf" d="M470,362 L422,362"/>
+
+<!-- 步骤 7 -->
+<rect class="fn" x="210" y="346" width="208" height="32"/>
+<text class="mc" x="314" y="366">__evl_do_irq_work</text>
+<circle class="sn" cx="418" cy="336" r="8"/><text class="snt" x="418" y="339.5">7</text>
+<path class="cfg" d="M300,378 L300,430"/>
+<text class="m" x="308" y="404">queue_work</text>
+<text class="cap" x="308" y="418">换上第二张单</text>
+
+<!-- ================= 信箱③ ring->wq ================= -->
+<rect x="200" y="434" width="230" height="42" rx="21" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<rect class="pg" x="226" y="446" width="44" height="18" rx="3"/>
+<rect class="pg" x="276" y="446" width="44" height="18" rx="3"/>
+<rect class="pg" x="326" y="446" width="64" height="18" rx="3" stroke="#0072B2" stroke-width="1.4"/>
+<text class="mc" x="358" y="459">wq_work</text>
+<text class="mbt" x="446" y="451">信箱③ ring->wq</text>
+<text class="cap" x="446" y="468">Linux workqueue · 每个 proxy 方向一个 · unbound + 有序（一次一个）</text>
+
+<!-- ================= C：kworker，从左到右 ================= -->
+<path class="cfg" d="M300,476 L300,528"/>
+<text class="cap" x="308" y="508">kworker 取出执行</text>
+<rect class="fn" x="210" y="532" width="190" height="32"/>
+<text class="mc" x="305" y="552">relay_output</text>
+<circle class="sn" cx="210" cy="522" r="8"/><text class="snt" x="210" y="525.5">8</text>
+<path class="cf" d="M400,548 L470,548"/>
+<text class="mc" x="434" y="539">kernel_write</text>
+<path d="M476,526 L500,526 L510,536 L510,570 L476,570 z" fill="#fff" stroke="#000" stroke-width="1.2"/>
+<path d="M500,526 L500,536 L510,536" fill="none" stroke="#000" stroke-width="1"/>
+<text class="cap" x="518" y="552">目标 fd</text>
+
+<!-- 迁移小结 -->
+<rect x="620" y="506" width="270" height="90" rx="4" fill="#fff" stroke="#D55E00" stroke-width="1.2"/>
+<text class="red" x="632" y="523">迁移关注点</text>
+<text class="cap" x="632" y="540">oob 上碰到的非 EVL 状态只有 ① 和 ②</text>
+<text class="cap" x="632" y="555">① Linux 链表：可换成 EVL 自己的</text>
+<text class="cap" x="632" y="570">② Dovetail 日志：只有 Dovetail 能做</text>
+<text class="cap" x="632" y="586">步骤 5–8 都在 inband，与实时性无关</text>
+
+<!-- ================= 图例 ================= -->
+<rect class="pb" x="20" y="618" width="22" height="12" rx="2"/>
+<text class="cap" x="48" y="628">relay_work 的成员（同一个包裹）</text>
+<rect class="pg" x="240" y="618" width="22" height="12" rx="2"/>
+<text class="cap" x="268" y="628">其他 work / 其他 irq</text>
+<rect x="400" y="618" width="22" height="12" rx="2" fill="#fff" stroke="#D55E00" stroke-width="1.4" stroke-dasharray="4 2"/>
+<text class="cap" x="428" y="628">oob 上碰到的 Linux 状态</text>
+<circle class="sn" cx="580" cy="624" r="7"/><text class="snt" x="580" y="627.5">1</text>
+<text class="cap" x="592" y="628">执行步骤（A 左→右，B 右→左，C 左→右）</text>
+</svg>

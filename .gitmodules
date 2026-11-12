@@ -1,0 +1,15 @@
+[submodule "libevl"]
+	path = libevl
+	url = https://github.com/KuanKuanQAQ/libevl.git
+	branch = master
+[submodule "linux-evl"]
+	path = linux-evl
+	url = https://github.com/KuanKuanQAQ/linux-evl.git
+	branch = evl-lkl
+[submodule "lkl"]
+	path = lkl
+	url = https://github.com/KuanKuanQAQ/lkl.git
+	branch = evl-glue
+[submodule "linux-evl-orig"]
+	path = linux-evl-orig
+	url = https://github.com/KuanKuanQAQ/linux-evl.git

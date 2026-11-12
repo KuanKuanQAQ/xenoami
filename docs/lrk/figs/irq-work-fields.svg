@@ -1,0 +1,1142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1960 2040" width="1960" height="2040"
+     font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<!-- irq_work 路径：函数归属、结构体全部字段、函数读写了哪些字段（由 gen_fields.py 生成） -->
+<defs>
+  <marker id="ahe" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker>
+</defs>
+<style>
+  text  { fill:#000; }
+  .ttl  { font-size:17px; font-weight:bold; }
+  .ph   { font-size:12.5px; font-weight:bold; }
+  .cap  { font-size:10.5px; fill:#333; }
+  .capr { font-size:10.5px; fill:#333; text-anchor:middle; }
+  .snt  { fill:#fff; font-size:10px; font-weight:bold; text-anchor:middle; }
+  .fnm  { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:11.5px; font-weight:bold; }
+  .otag { fill:#fff; font-size:9.5px; font-weight:bold; }
+  .loc  { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:9.5px; fill:#555; }
+  .dsc  { font-size:11px; }
+  .chip { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:9.5px; }
+  .sth  { font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:11px; font-weight:bold; }
+  .fid  { fill:#fff; font-size:8.5px; font-weight:bold; text-anchor:middle; }
+  .fname{ font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:10px; font-weight:bold; }
+  .ftype{ font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace; font-size:9px; fill:#666; }
+  .fmean{ font-size:10.5px; }
+  .mk   { font-size:8.5px; font-weight:bold; text-anchor:middle; }
+  .emb  { fill:none; stroke:#555; stroke-width:1.1; marker-end:url(#ahe); }
+  .lnk  { fill:none; stroke:#009E73; stroke-width:1.1; stroke-dasharray:4 3; }
+</style>
+<rect width="1960" height="2040" fill="#fff"/>
+<text class="ttl" x="20" y="32">irq_work 路径（proxy 写）：函数归属 · 结构体全部字段 · 谁读写了哪个字段</text>
+<rect x="20" y="56" width="30" height="16" rx="2" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/><rect x="20" y="56" width="5" height="16" fill="#0072B2"/>
+<text class="dsc" x="58" y="68">EVL 的函数/结构体（kernel/evl, include/evl）</text>
+<rect x="344.4799999999999" y="56" width="30" height="16" rx="2" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/><rect x="344.4799999999999" y="56" width="5" height="16" fill="#009E73"/>
+<text class="dsc" x="382.4799999999999" y="68">Linux 原有（irq_work、workqueue、VFS）</text>
+<rect x="634.6399999999999" y="56" width="30" height="16" rx="2" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/><rect x="634.6399999999999" y="56" width="5" height="16" fill="#E69F00"/>
+<text class="dsc" x="672.6399999999999" y="68">Dovetail 加进 Linux 的（kernel/irq/pipeline.c 等）</text>
+<rect x="20" y="84" width="58" height="15" rx="2" fill="#333333" stroke="#333333"/><text class="chip" x="26" y="95" style="fill:#FFFFFF">P6 wroff</text>
+<text class="dsc" x="84" y="96">写</text>
+<rect x="119" y="84" width="58" height="15" rx="2" fill="#F2C14E" stroke="#333333"/><text class="chip" x="125" y="95" style="fill:#000000">P6 wroff</text>
+<text class="dsc" x="183" y="96">读写</text>
+<rect x="229" y="84" width="58" height="15" rx="2" fill="#FFFFFF" stroke="#333333"/><text class="chip" x="235" y="95" style="fill:#000000">P6 wroff</text>
+<text class="dsc" x="293" y="96">读</text>
+<text class="cap" x="328" y="96">左边每个函数下方的标签 = 它读写的字段（编号对应右边结构体）；右边每个字段行末的小方块 = 读写它的步骤号，颜色含义相同。</text>
+<text class="cap" x="20" y="116">灰色箭头：结构体嵌入或指针指向（如 P12 relay_work 就是一个 evl_work）。绿色虚线：N1 next 和 Q1 first 串成 raised_list 链表。步骤 i1–i5 在创建时执行一次；1–24 是每次 oob 写的路径。</text>
+<text class="ph" x="790" y="140">结构体与字段</text>
+<text class="ph" x="20" y="140">函数（按执行顺序）</text>
+<rect x="20" y="150" width="740" height="34" fill="#F4F4F4" stroke="#999" stroke-width="0.8"/>
+<text class="ph" x="30.0" y="165.0">初始化 · inband（创建 proxy 时）</text>
+<text class="cap" x="30.0" y="179.0">包裹和队列都事先准备好，oob 上就不用分配内存</text>
+<rect x="20" y="192" width="740" height="68" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="192" width="6" height="68" fill="#0072B2"/>
+<rect x="32" y="199" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="211.0">i1</text>
+<text class="fnm" x="64.0" y="211.0">init_ring</text>
+<rect x="135.1" y="200" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="140.1" y="211.0">EVL</text>
+<text class="loc" x="167.1" y="211.0">proxy.c:624</text>
+<text class="dsc" x="240.8" y="211.0">分配缓冲，创建队列，初始化锁、等待队列和包裹</text>
+<rect x="64.0" y="220" width="62.2" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P1 bufmem</text>
+<rect x="131.2" y="220" width="56.4" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="136.2" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P4 bufsz</text>
+<rect x="192.5" y="220" width="91.1" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="197.5" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P8 granularity</text>
+<rect x="288.6" y="220" width="73.7" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="293.6" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P9 oob_wait</text>
+<rect x="367.4" y="220" width="108.5" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="372.4" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P10 inband_wait_r</text>
+<rect x="480.9" y="220" width="108.5" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="485.9" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P11 inband_wait_w</text>
+<rect x="594.4" y="220" width="56.4" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="599.4" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P13 lock</text>
+<rect x="655.8" y="220" width="44.8" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="660.8" y="231" fill="#FFFFFF" style="fill:#FFFFFF">P14 wq</text>
+<rect x="64.0" y="238" width="96.9" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="249" fill="#FFFFFF" style="fill:#FFFFFF">P15 worker_lock</text>
+<rect x="20" y="266" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="266" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="273" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="285.0">i2</text>
+<text class="fnm" x="64.0" y="285.0">alloc_ordered_workqueue</text>
+<rect x="233.3" y="274" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="238.3" y="285.0">Linux</text>
+<text class="loc" x="275.9" y="285.0">workqueue.h:566</text>
+<text class="dsc" x="372.9" y="285.0">创建 unbound + ordered（max_active=1）队列，返回值存进 P14</text>
+<text class="cap" x="64.0" y="306.0">创建 workqueue_struct</text>
+<rect x="20" y="322" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="322" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="329" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="341.0">i3</text>
+<text class="fnm" x="64.0" y="341.0">evl_init_work_safe</text>
+<rect x="198.3" y="330" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="203.3" y="341.0">EVL</text>
+<text class="loc" x="230.2" y="341.0">work.c:66</text>
+<text class="dsc" x="292.4" y="341.0">经 evl_init_work 填好包裹；wq 此时不填</text>
+<rect x="64.0" y="350" width="68.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="361" fill="#FFFFFF" style="fill:#FFFFFF">W4 handler</text>
+<rect x="137.0" y="350" width="68.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="142.0" y="361" fill="#FFFFFF" style="fill:#FFFFFF">W5 element</text>
+<rect x="20" y="378" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="378" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="385" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="397.0">i4</text>
+<text class="fnm" x="64.0" y="397.0">init_irq_work</text>
+<rect x="163.2" y="386" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="168.2" y="397.0">Linux</text>
+<text class="loc" x="205.8" y="397.0">irq_work.h</text>
+<text class="dsc" x="273.7" y="397.0">清零 irq_work，设回调</text>
+<rect x="64.0" y="406" width="85.3" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="417" fill="#FFFFFF" style="fill:#FFFFFF">N1 llist.next</text>
+<rect x="154.3" y="406" width="68.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="159.3" y="417" fill="#FFFFFF" style="fill:#FFFFFF">N2 a_flags</text>
+<rect x="227.3" y="406" width="50.6" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="232.3" y="417" fill="#FFFFFF" style="fill:#FFFFFF">I2 func</text>
+<rect x="282.9" y="406" width="68.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="287.9" y="417" fill="#FFFFFF" style="fill:#FFFFFF">I3 irqwait</text>
+<rect x="20" y="434" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="434" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="441" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="453.0">i5</text>
+<text class="fnm" x="64.0" y="453.0">INIT_WORK</text>
+<rect x="135.1" y="442" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="140.1" y="453.0">Linux</text>
+<text class="loc" x="177.7" y="453.0">workqueue.h</text>
+<text class="dsc" x="251.5" y="453.0">初始化 work_struct，设回调</text>
+<rect x="64.0" y="462" width="50.6" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="473" fill="#FFFFFF" style="fill:#FFFFFF">K1 data</text>
+<rect x="119.6" y="462" width="56.4" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="124.6" y="473" fill="#FFFFFF" style="fill:#FFFFFF">K2 entry</text>
+<rect x="180.9" y="462" width="50.6" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="185.9" y="473" fill="#FFFFFF" style="fill:#FFFFFF">K3 func</text>
+<rect x="20" y="496" width="740" height="34" fill="#F4F4F4" stroke="#999" stroke-width="0.8"/>
+<text class="ph" x="30.0" y="511.0">第一段 · oob 线程</text>
+<text class="cap" x="30.0" y="525.0">同步完成：不拿 Linux 锁、不睡眠、不等待；碰到的非 EVL 状态只有 N1 N2 Q1（Linux）和 G*（Dovetail）</text>
+<rect x="20" y="538" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="538" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="545" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="557.0">1</text>
+<text class="fnm" x="64.0" y="557.0">proxy_oob_write</text>
+<rect x="177.2" y="546" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="182.2" y="557.0">EVL</text>
+<text class="loc" x="209.2" y="557.0">proxy.c:398</text>
+<text class="dsc" x="282.9" y="557.0">oob_write() 的 proxy 实现；缓冲满时在 oob_wait 上睡</text>
+<rect x="64.0" y="566" width="73.7" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="577" fill="#000000" style="fill:#000000">P9 oob_wait</text>
+<rect x="142.7" y="566" width="91.1" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="147.7" y="577" fill="#000000" style="fill:#000000">E7 clone_flags</text>
+<rect x="20" y="594" width="740" height="68" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="594" width="6" height="68" fill="#0072B2"/>
+<rect x="32" y="601" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="613.0">2</text>
+<text class="fnm" x="64.0" y="613.0">do_proxy_write</text>
+<rect x="170.2" y="602" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="175.2" y="613.0">EVL</text>
+<text class="loc" x="202.2" y="613.0">proxy.c:159</text>
+<text class="dsc" x="275.9" y="613.0">拿硬锁→预留→拷数据→最后一个写者提交；空变非空时通知 inband</text>
+<rect x="64.0" y="622" width="62.2" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="633" fill="#FFFFFF" style="fill:#FFFFFF">P1 bufmem</text>
+<rect x="131.2" y="622" width="62.2" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="136.2" y="633" fill="#000000" style="fill:#000000">P2 fillsz</text>
+<rect x="198.3" y="622" width="68.0" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="203.3" y="633" fill="#000000" style="fill:#000000">P3 nesting</text>
+<rect x="271.3" y="622" width="56.4" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="276.3" y="633" fill="#000000" style="fill:#000000">P6 wroff</text>
+<rect x="332.6" y="622" width="73.7" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="337.6" y="633" fill="#000000" style="fill:#000000">P7 reserved</text>
+<rect x="411.4" y="622" width="56.4" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="416.4" y="633" fill="#000000" style="fill:#000000">P13 lock</text>
+<rect x="472.7" y="622" width="56.4" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="477.7" y="633" fill="#000000" style="fill:#000000">P4 bufsz</text>
+<rect x="534.1" y="622" width="91.1" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="539.1" y="633" fill="#000000" style="fill:#000000">P8 granularity</text>
+<rect x="630.2" y="622" width="91.1" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="635.2" y="633" fill="#000000" style="fill:#000000">P12 relay_work</text>
+<rect x="64.0" y="640" width="44.8" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="651" fill="#000000" style="fill:#000000">P14 wq</text>
+<rect x="20" y="668" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="668" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="675" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="687.0">3</text>
+<text class="fnm" x="64.0" y="687.0">evl_call_inband_from</text>
+<rect x="212.3" y="676" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="217.3" y="687.0">EVL</text>
+<text class="loc" x="244.3" y="687.0">work.c:85</text>
+<text class="dsc" x="306.4" y="687.0">写下第二段目的地，加引用，交给 irq_work</text>
+<rect x="64.0" y="696" width="39.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="707" fill="#FFFFFF" style="fill:#FFFFFF">W3 wq</text>
+<rect x="108.0" y="696" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="113.0" y="707" fill="#000000" style="fill:#000000">W5 element</text>
+<rect x="20" y="724" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="724" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="731" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="743.0">4</text>
+<text class="fnm" x="64.0" y="743.0">evl_get_element</text>
+<rect x="177.2" y="732" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="182.2" y="743.0">EVL</text>
+<text class="loc" x="209.2" y="743.0">factory.h:122</text>
+<text class="dsc" x="294.5" y="743.0">元素引用 +1（refcount_inc_not_zero）</text>
+<rect x="64.0" y="752" width="73.7" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="763" fill="#000000" style="fill:#000000">E13 ns_node</text>
+<rect x="20" y="780" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="780" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="787" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="799.0">5</text>
+<text class="fnm" x="64.0" y="799.0">irq_work_queue</text>
+<rect x="170.2" y="788" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="175.2" y="799.0">Linux</text>
+<text class="loc" x="212.8" y="799.0">irq_work.c:116</text>
+<text class="dsc" x="303.9" y="799.0">irq_work 入队 API：依次调用 6、7、8；preempt_disable 防迁移</text>
+<text class="cap" x="64.0" y="820.0">自身不碰字段</text>
+<rect x="20" y="836" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="836" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="843" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="855.0">6</text>
+<text class="fnm" x="64.0" y="855.0">irq_work_claim</text>
+<rect x="170.2" y="844" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="175.2" y="855.0">Linux</text>
+<text class="loc" x="212.8" y="855.0">irq_work.c:57</text>
+<text class="dsc" x="298.1" y="855.0">atomic_fetch_or 设 PENDING|BUSY；原来就 PENDING 则返回 false</text>
+<rect x="64.0" y="864" width="68.0" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="875" fill="#000000" style="fill:#000000">N2 a_flags</text>
+<rect x="20" y="892" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="892" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="899" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="911.0">7</text>
+<text class="fnm" x="64.0" y="911.0">__irq_work_queue_local</text>
+<rect x="226.3" y="900" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="231.3" y="911.0">Linux</text>
+<text class="loc" x="268.9" y="911.0">irq_work.c:85</text>
+<text class="dsc" x="354.3" y="911.0">按 LAZY 选链表；llist_add 用 cmpxchg 换表头；原来为空才按门铃</text>
+<rect x="64.0" y="920" width="85.3" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="931" fill="#FFFFFF" style="fill:#FFFFFF">N1 llist.next</text>
+<rect x="154.3" y="920" width="125.9" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="159.3" y="931" fill="#000000" style="fill:#000000">Q1 raised_list.first</text>
+<rect x="285.2" y="920" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="290.2" y="931" fill="#000000" style="fill:#000000">N2 a_flags</text>
+<rect x="20" y="948" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="948" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="955" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="967.0">8</text>
+<text class="fnm" x="64.0" y="967.0">irq_local_work_raise</text>
+<rect x="212.3" y="956" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="217.3" y="967.0">Dovetail</text>
+<text class="loc" x="270.9" y="967.0">pipeline.c:1715</text>
+<text class="dsc" x="367.8" y="967.0">强符号替换原版（原版发自 IPI）：硬关中断，post sirq</text>
+<rect x="64.0" y="976" width="102.2" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="987" fill="#000000" style="fill:#000000">C3 CPU 的 IF 标志</text>
+<rect x="171.2" y="976" width="137.5" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="176.2" y="987" fill="#000000" style="fill:#000000">C1 current-&gt;stall_bits</text>
+<rect x="313.7" y="976" width="152.8" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="318.7" y="987" fill="#000000" style="fill:#000000">C2 preempt_count STAGE 位</text>
+<rect x="20" y="1004" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="1004" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="1011" width="20" height="16" rx="8" fill="#000"/>
+<text class="snt" x="42.0" y="1023.0">9</text>
+<text class="fnm" x="64.0" y="1023.0">irq_post_stage</text>
+<rect x="170.2" y="1012" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="175.2" y="1023.0">Dovetail</text>
+<text class="loc" x="228.8" y="1023.0">pipeline.c:613</text>
+<text class="dsc" x="319.9" y="1023.0">经 irq_post_inband 调用：在本 CPU inband 日志里设上 inband_work_sirq 的位</text>
+<rect x="64.0" y="1032" width="68.0" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1043" fill="#FFFFFF" style="fill:#FFFFFF">G1 index_0</text>
+<rect x="137.0" y="1032" width="108.5" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="142.0" y="1043" fill="#FFFFFF" style="fill:#FFFFFF">G3 map-&gt;index_1[]</text>
+<rect x="250.5" y="1032" width="91.1" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="255.5" y="1043" fill="#FFFFFF" style="fill:#FFFFFF">G5 map-&gt;flat[]</text>
+<rect x="346.6" y="1032" width="56.4" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="351.6" y="1043" fill="#000000" style="fill:#000000">T1 index</text>
+<rect x="408.0" y="1032" width="79.5" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="413.0" y="1043" fill="#000000" style="fill:#000000">D1 stages[2]</text>
+<text class="cap" x="492.5" y="1044.0">G4 仅 4 级时</text>
+<rect x="20" y="1066" width="740" height="34" fill="#F4F4F4" stroke="#999" stroke-width="0.8"/>
+<text class="ph" x="30.0" y="1081.0">第二段 · inband 中断上下文</text>
+<text class="cap" x="30.0" y="1095.0">oob 让出 CPU、inband 恢复后，Dovetail 回放日志；可以拿自旋锁，不能睡眠</text>
+<rect x="20" y="1108" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="1108" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="1115" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1127.0">10</text>
+<text class="fnm" x="64.0" y="1127.0">sync_current_irq_stage</text>
+<rect x="226.3" y="1116" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="231.3" y="1127.0">Dovetail</text>
+<text class="loc" x="284.9" y="1127.0">pipeline.c:1322</text>
+<text class="dsc" x="381.8" y="1127.0">回放日志；从中断退出路径或 inband 解除 stall 时进入</text>
+<rect x="64.0" y="1136" width="137.5" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1147" fill="#000000" style="fill:#000000">C1 current-&gt;stall_bits</text>
+<rect x="206.5" y="1136" width="102.2" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="211.5" y="1147" fill="#000000" style="fill:#000000">C3 CPU 的 IF 标志</text>
+<rect x="313.7" y="1136" width="152.8" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="318.7" y="1147" fill="#000000" style="fill:#000000">C2 preempt_count STAGE 位</text>
+<rect x="471.5" y="1136" width="79.5" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="476.5" y="1147" fill="#000000" style="fill:#000000">D1 stages[2]</text>
+<rect x="20" y="1164" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="1164" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="1171" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1183.0">11</text>
+<text class="fnm" x="64.0" y="1183.0">pull_next_irq</text>
+<rect x="163.2" y="1172" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="168.2" y="1183.0">Dovetail</text>
+<text class="loc" x="221.8" y="1183.0">pipeline.c（内联）</text>
+<text class="dsc" x="327.7" y="1183.0">用 __ffs 逐级找最低的待处理中断号，清掉它的位</text>
+<rect x="64.0" y="1192" width="68.0" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1203" fill="#000000" style="fill:#000000">G1 index_0</text>
+<rect x="137.0" y="1192" width="108.5" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="142.0" y="1203" fill="#000000" style="fill:#000000">G3 map-&gt;index_1[]</text>
+<rect x="250.5" y="1192" width="91.1" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="255.5" y="1203" fill="#000000" style="fill:#000000">G5 map-&gt;flat[]</text>
+<rect x="346.6" y="1192" width="44.8" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="351.6" y="1203" fill="#000000" style="fill:#000000">G2 map</text>
+<rect x="20" y="1220" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="1220" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="1227" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1239.0">12</text>
+<text class="fnm" x="64.0" y="1239.0">do_inband_irq</text>
+<rect x="163.2" y="1228" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="168.2" y="1239.0">Dovetail</text>
+<text class="loc" x="221.8" y="1239.0">pipeline.c:979</text>
+<text class="dsc" x="312.9" y="1239.0">开硬中断（inband 仍 stall），经 irq_desc 调 irqaction 的 handler</text>
+<rect x="64.0" y="1248" width="102.2" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1259" fill="#000000" style="fill:#000000">C3 CPU 的 IF 标志</text>
+<rect x="171.2" y="1248" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="176.2" y="1259" fill="#000000" style="fill:#000000">A1 handler</text>
+<rect x="20" y="1276" width="740" height="50" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="20" y="1276" width="6" height="50" fill="#E69F00"/>
+<rect x="32" y="1283" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1295.0">13</text>
+<text class="fnm" x="64.0" y="1295.0">inband_work_interrupt</text>
+<rect x="219.3" y="1284" width="52.6" height="14" rx="2" fill="#E69F00"/>
+<text class="otag" x="224.3" y="1295.0">Dovetail</text>
+<text class="loc" x="277.9" y="1295.0">pipeline.c:1702</text>
+<text class="dsc" x="374.8" y="1295.0">sirq 的处理函数，只调 irq_work_run</text>
+<text class="cap" x="64.0" y="1316.0">自身不碰字段</text>
+<rect x="20" y="1332" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1332" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1339" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1351.0">14</text>
+<text class="fnm" x="64.0" y="1351.0">irq_work_run</text>
+<rect x="156.2" y="1340" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="161.2" y="1351.0">Linux</text>
+<text class="loc" x="198.8" y="1351.0">irq_work.c:274</text>
+<text class="dsc" x="289.9" y="1351.0">对本 CPU 的两条链表各调一次 15</text>
+<text class="cap" x="64.0" y="1372.0">只取链表地址</text>
+<rect x="20" y="1388" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1388" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1395" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1407.0">15</text>
+<text class="fnm" x="64.0" y="1407.0">irq_work_run_list</text>
+<rect x="191.3" y="1396" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="196.3" y="1407.0">Linux</text>
+<text class="loc" x="233.9" y="1407.0">irq_work.c:256</text>
+<text class="dsc" x="325.0" y="1407.0">llist_del_all（xchg 置 NULL）摘下整条链，逐个调 16</text>
+<rect x="64.0" y="1416" width="125.9" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1427" fill="#000000" style="fill:#000000">Q1 raised_list.first</text>
+<rect x="194.9" y="1416" width="114.3" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="199.9" y="1427" fill="#000000" style="fill:#000000">Q2 lazy_list.first</text>
+<rect x="314.2" y="1416" width="137.5" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="319.2" y="1427" fill="#000000" style="fill:#000000">C1 current-&gt;stall_bits</text>
+<rect x="456.7" y="1416" width="85.3" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="461.7" y="1427" fill="#000000" style="fill:#000000">N1 llist.next</text>
+<rect x="20" y="1444" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1444" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1451" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1463.0">16</text>
+<text class="fnm" x="64.0" y="1463.0">irq_work_single</text>
+<rect x="177.2" y="1452" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="182.2" y="1463.0">Linux</text>
+<text class="loc" x="219.8" y="1463.0">irq_work.c:203</text>
+<text class="dsc" x="311.0" y="1463.0">清 PENDING → 调 func → cmpxchg 清 BUSY</text>
+<rect x="64.0" y="1472" width="68.0" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1483" fill="#000000" style="fill:#000000">N2 a_flags</text>
+<rect x="137.0" y="1472" width="50.6" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="142.0" y="1483" fill="#000000" style="fill:#000000">I2 func</text>
+<rect x="20" y="1500" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="1500" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="1507" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1519.0">17</text>
+<text class="fnm" x="64.0" y="1519.0">__evl_do_irq_work</text>
+<rect x="191.3" y="1508" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="196.3" y="1519.0">EVL</text>
+<text class="loc" x="223.2" y="1519.0">work.c:37</text>
+<text class="dsc" x="285.4" y="1519.0">container_of 找回包裹，投进第二段队列；失败则退回引用</text>
+<rect x="64.0" y="1528" width="39.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1539" fill="#000000" style="fill:#000000">W3 wq</text>
+<rect x="108.0" y="1528" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="113.0" y="1539" fill="#000000" style="fill:#000000">W5 element</text>
+<rect x="20" y="1556" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1556" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1563" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1575.0">18</text>
+<text class="fnm" x="64.0" y="1575.0">queue_work</text>
+<rect x="142.1" y="1564" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="147.1" y="1575.0">Linux</text>
+<text class="loc" x="184.7" y="1575.0">workqueue.c:2415</text>
+<text class="dsc" x="287.5" y="1575.0">test_and_set 设 PENDING，挂进 pool 链表，唤醒 kworker</text>
+<rect x="64.0" y="1584" width="56.4" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1595" fill="#FFFFFF" style="fill:#FFFFFF">K2 entry</text>
+<rect x="125.4" y="1584" width="50.6" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="130.4" y="1595" fill="#000000" style="fill:#000000">K1 data</text>
+<text class="cap" x="180.9" y="1596.0">读 workqueue_struct</text>
+<rect x="20" y="1618" width="740" height="34" fill="#F4F4F4" stroke="#999" stroke-width="0.8"/>
+<text class="ph" x="30.0" y="1633.0">第三段 · kworker 进程上下文</text>
+<text class="cap" x="30.0" y="1647.0">可以睡眠、走 VFS</text>
+<rect x="20" y="1660" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1660" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1667" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1679.0">19</text>
+<text class="fnm" x="64.0" y="1679.0">process_one_work</text>
+<rect x="184.2" y="1668" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="189.2" y="1679.0">Linux</text>
+<text class="loc" x="226.8" y="1679.0">workqueue.c:3163</text>
+<text class="dsc" x="329.6" y="1679.0">kworker 取出 work：摘链表、清 PENDING、调 func</text>
+<rect x="64.0" y="1688" width="50.6" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1699" fill="#000000" style="fill:#000000">K1 data</text>
+<rect x="119.6" y="1688" width="56.4" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="124.6" y="1699" fill="#000000" style="fill:#000000">K2 entry</text>
+<rect x="180.9" y="1688" width="50.6" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="185.9" y="1699" fill="#000000" style="fill:#000000">K3 func</text>
+<rect x="20" y="1716" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="1716" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="1723" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1735.0">20</text>
+<text class="fnm" x="64.0" y="1735.0">__evl_do_work</text>
+<rect x="163.2" y="1724" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="168.2" y="1735.0">EVL</text>
+<text class="loc" x="195.2" y="1735.0">work.c:9</text>
+<text class="dsc" x="251.5" y="1735.0">调 handler，返回后退回引用（调 24）</text>
+<rect x="64.0" y="1744" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1755" fill="#000000" style="fill:#000000">W4 handler</text>
+<rect x="137.0" y="1744" width="68.0" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="142.0" y="1755" fill="#000000" style="fill:#000000">W5 element</text>
+<rect x="20" y="1772" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="1772" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="1779" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1791.0">21</text>
+<text class="fnm" x="64.0" y="1791.0">relay_output_work</text>
+<rect x="191.3" y="1780" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="196.3" y="1791.0">EVL</text>
+<text class="loc" x="223.2" y="1791.0">proxy.c:145</text>
+<text class="dsc" x="297.0" y="1791.0">container_of 从包裹找回 proxy，调 22</text>
+<text class="cap" x="64.0" y="1812.0">只做指针换算</text>
+<rect x="20" y="1828" width="740" height="68" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="1828" width="6" height="68" fill="#0072B2"/>
+<rect x="32" y="1835" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1847.0">22</text>
+<text class="fnm" x="64.0" y="1847.0">relay_output</text>
+<rect x="156.2" y="1836" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="161.2" y="1847.0">EVL</text>
+<text class="loc" x="188.1" y="1847.0">proxy.c:75</text>
+<text class="dsc" x="256.1" y="1847.0">拿 worker_lock，把缓冲写进目标文件；唤醒 oob 写者和 inband 写者</text>
+<rect x="64.0" y="1856" width="73.7" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1867" fill="#FFFFFF" style="fill:#FFFFFF">P9 oob_wait</text>
+<rect x="142.7" y="1856" width="108.5" height="15" rx="2" fill="#333333" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="147.7" y="1867" fill="#FFFFFF" style="fill:#FFFFFF">P11 inband_wait_w</text>
+<rect x="256.3" y="1856" width="62.2" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="261.3" y="1867" fill="#000000" style="fill:#000000">P2 fillsz</text>
+<rect x="323.4" y="1856" width="56.4" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="328.4" y="1867" fill="#000000" style="fill:#000000">P5 rdoff</text>
+<rect x="384.8" y="1856" width="96.9" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="389.8" y="1867" fill="#000000" style="fill:#000000">P15 worker_lock</text>
+<rect x="486.7" y="1856" width="50.6" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="491.7" y="1867" fill="#000000" style="fill:#000000">X1 filp</text>
+<rect x="542.3" y="1856" width="62.2" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="547.3" y="1867" fill="#000000" style="fill:#000000">P1 bufmem</text>
+<rect x="609.4" y="1856" width="56.4" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="614.4" y="1867" fill="#000000" style="fill:#000000">P4 bufsz</text>
+<rect x="64.0" y="1874" width="91.1" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1885" fill="#000000" style="fill:#000000">P8 granularity</text>
+<rect x="160.1" y="1874" width="79.5" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="165.1" y="1885" fill="#000000" style="fill:#000000">X5 poll_head</text>
+<rect x="20" y="1902" width="740" height="50" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<rect x="20" y="1902" width="6" height="50" fill="#009E73"/>
+<rect x="32" y="1909" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1921.0">23</text>
+<text class="fnm" x="64.0" y="1921.0">kernel_write</text>
+<rect x="156.2" y="1910" width="36.6" height="14" rx="2" fill="#009E73"/>
+<text class="otag" x="161.2" y="1921.0">Linux</text>
+<text class="loc" x="198.8" y="1921.0">VFS</text>
+<text class="dsc" x="226.2" y="1921.0">把内核缓冲写进文件，可能睡眠</text>
+<rect x="64.0" y="1930" width="62.2" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1941" fill="#000000" style="fill:#000000">P1 bufmem</text>
+<rect x="131.2" y="1930" width="50.6" height="15" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="136.2" y="1941" fill="#000000" style="fill:#000000">X1 filp</text>
+<rect x="20" y="1958" width="740" height="50" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="20" y="1958" width="6" height="50" fill="#0072B2"/>
+<rect x="32" y="1965" width="26" height="16" rx="8" fill="#000"/>
+<text class="snt" x="45.0" y="1977.0">24</text>
+<text class="fnm" x="64.0" y="1977.0">evl_put_element</text>
+<rect x="177.2" y="1966" width="26.0" height="14" rx="2" fill="#0072B2"/>
+<text class="otag" x="182.2" y="1977.0">EVL</text>
+<text class="loc" x="209.2" y="1977.0">factory.h:169</text>
+<text class="dsc" x="294.5" y="1977.0">元素引用 −1，到零则销毁元素</text>
+<rect x="64.0" y="1986" width="73.7" height="15" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="1"/>
+<text class="chip" x="69.0" y="1997" fill="#000000" style="fill:#000000">E13 ns_node</text>
+<rect x="790" y="150" width="556" height="125" rx="3" fill="#fff" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="790" y="150" width="556" height="34" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<text class="sth" x="798.0" y="164.0">struct evl_proxy</text>
+<text class="loc" x="915.4" y="164.0">EVL · proxy.c:56</text>
+<text class="cap" x="798.0" y="178.0">一个 proxy：把 oob 读写转发到普通文件</text>
+<rect x="795" y="189" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="198.0">X1</text>
+<text class="fname" x="828.0" y="198.5">filp</text>
+<text class="ftype" x="858.4" y="198.5">struct file *</text>
+<text class="fmean" x="1040.0" y="198.5">目标文件，数据最终写到这里</text>
+<rect x="1319.0" y="188.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="197.5" style="fill:#000000">23</text>
+<rect x="1295.0" y="188.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1305.5" y="197.5" style="fill:#000000">22</text>
+<rect x="791" y="203" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="206" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="215.0">X2</text>
+<text class="fname" x="828.0" y="215.5">output</text>
+<text class="ftype" x="870.6" y="215.5">struct proxy_out</text>
+<text class="fmean" x="1040.0" y="215.5">输出方向，内含一个 proxy_ring</text>
+<rect x="795" y="223" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="232.0">X3</text>
+<text class="fname" x="828.0" y="232.5">input</text>
+<text class="ftype" x="864.5" y="232.5">struct proxy_in</text>
+<text class="fmean" x="1040.0" y="232.5">输入方向：ring + reqsz/on_eof/on_error</text>
+<rect x="791" y="237" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="240" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="249.0">X4</text>
+<text class="fname" x="828.0" y="249.5">element</text>
+<text class="ftype" x="876.7" y="249.5">struct evl_element</text>
+<text class="fmean" x="1040.0" y="249.5">EVL 元素公共部分</text>
+<rect x="795" y="257" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="266.0">X5</text>
+<text class="fname" x="828.0" y="266.5">poll_head</text>
+<text class="ftype" x="888.9" y="266.5">struct evl_poll_head</text>
+<text class="fmean" x="1040.0" y="266.5">oob poll() 的等待者</text>
+<rect x="1319.0" y="256.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="265.5" style="fill:#000000">22</text>
+<rect x="790" y="297" width="556" height="278" rx="3" fill="#fff" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="790" y="297" width="556" height="34" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<text class="sth" x="798.0" y="311.0">struct evl_element</text>
+<text class="loc" x="928.8" y="311.0">EVL · factory.h:66</text>
+<text class="cap" x="798.0" y="325.0">所有 EVL 对象（线程、proxy…）的公共部分</text>
+<rect x="795" y="336" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="345.0">E1</text>
+<text class="fname" x="828.0" y="345.5">rcu</text>
+<text class="ftype" x="852.3" y="345.5">struct rcu_head</text>
+<text class="fmean" x="1040.0" y="345.5">RCU 延迟释放</text>
+<rect x="791" y="350" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="353" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="362.0">E2</text>
+<text class="fname" x="828.0" y="362.5">factory</text>
+<text class="ftype" x="876.7" y="362.5">struct evl_factory *</text>
+<text class="fmean" x="1040.0" y="362.5">所属类型的工厂</text>
+<rect x="795" y="370" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="379.0">E3</text>
+<text class="fname" x="828.0" y="379.5">cdev</text>
+<text class="ftype" x="858.4" y="379.5">struct cdev</text>
+<text class="fmean" x="1040.0" y="379.5">字符设备</text>
+<rect x="791" y="384" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="387" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="396.0">E4</text>
+<text class="fname" x="828.0" y="396.5">dev</text>
+<text class="ftype" x="852.3" y="396.5">struct device *</text>
+<text class="fmean" x="1040.0" y="396.5">/dev/evl/... 设备</text>
+<rect x="795" y="404" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="413.0">E5</text>
+<text class="fname" x="828.0" y="413.5">devname</text>
+<text class="ftype" x="876.7" y="413.5">struct filename *</text>
+<text class="fmean" x="1040.0" y="413.5">设备名</text>
+<rect x="791" y="418" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="421" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="430.0">E6</text>
+<text class="fname" x="828.0" y="430.5">minor</text>
+<text class="ftype" x="864.5" y="430.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="430.5">次设备号</text>
+<rect x="795" y="438" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="447.0">E7</text>
+<text class="fname" x="828.0" y="447.5">clone_flags</text>
+<text class="ftype" x="901.1" y="447.5">int</text>
+<text class="fmean" x="1040.0" y="447.5">创建标志 PUBLIC/OUTPUT/INPUT…</text>
+<rect x="1325.0" y="437.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="446.5" style="fill:#000000">1</text>
+<rect x="791" y="452" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="455" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="464.0">E8</text>
+<text class="fname" x="828.0" y="464.5">irq_work</text>
+<text class="ftype" x="882.8" y="464.5">struct irq_work</text>
+<text class="fmean" x="1040.0" y="464.5">销毁元素时用（本路径不用）</text>
+<rect x="795" y="472" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="481.0">E9</text>
+<text class="fname" x="828.0" y="481.5">flush</text>
+<text class="ftype" x="864.5" y="481.5">struct list_head</text>
+<text class="fmean" x="1040.0" y="481.5">待销毁链表节点</text>
+<rect x="791" y="486" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="489" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="498.0">E10</text>
+<text class="fname" x="828.0" y="498.5">hash</text>
+<text class="ftype" x="858.4" y="498.5">struct hlist_node</text>
+<text class="fmean" x="1040.0" y="498.5">按名字查找的哈希节点</text>
+<rect x="795" y="506" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="515.0">E11</text>
+<text class="fname" x="828.0" y="515.5">fpriv</text>
+<text class="ftype" x="864.5" y="515.5">{filp, efd}</text>
+<text class="fmean" x="1040.0" y="515.5">元素自己的文件和 fd</text>
+<rect x="791" y="520" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="523" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="532.0">E12</text>
+<text class="fname" x="828.0" y="532.5">scope</text>
+<text class="ftype" x="864.5" y="532.5">struct evl_scope *</text>
+<text class="fmean" x="1040.0" y="532.5">所属命名空间</text>
+<rect x="795" y="540" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="549.0">E13</text>
+<text class="fname" x="828.0" y="549.5">ns_node</text>
+<text class="ftype" x="876.7" y="549.5">struct evl_map_node</text>
+<text class="fmean" x="1040.0" y="549.5">{fundle, refs, rb_node}，refs=引用计数</text>
+<rect x="1319.0" y="539.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="548.5" style="fill:#000000">24</text>
+<rect x="1301.0" y="539.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1308.5" y="548.5" style="fill:#000000">4</text>
+<rect x="791" y="554" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="557" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="566.0">E14</text>
+<text class="fname" x="828.0" y="566.5">owned</text>
+<text class="ftype" x="864.5" y="566.5">struct list_head</text>
+<text class="fmean" x="1040.0" y="566.5">挂在所属进程的元素链表上</text>
+<rect x="790" y="597" width="556" height="295" rx="3" fill="#fff" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="790" y="597" width="556" height="34" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<text class="sth" x="798.0" y="611.0">struct proxy_ring</text>
+<text class="loc" x="922.1" y="611.0">EVL · proxy.c:28</text>
+<text class="cap" x="798.0" y="625.0">一个方向的环形缓冲和配套设施</text>
+<rect x="795" y="636" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="645.0">P1</text>
+<text class="fname" x="828.0" y="645.5">bufmem</text>
+<text class="ftype" x="870.6" y="645.5">void *</text>
+<text class="fmean" x="1040.0" y="645.5">缓冲区内存</text>
+<rect x="1319.0" y="635.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="644.5" style="fill:#000000">23</text>
+<rect x="1295.0" y="635.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1305.5" y="644.5" style="fill:#000000">22</text>
+<rect x="1277.0" y="635.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1284.5" y="644.5" style="fill:#FFFFFF">2</text>
+<rect x="1253.0" y="635.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1263.5" y="644.5" style="fill:#FFFFFF">i1</text>
+<rect x="791" y="650" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="653" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="662.0">P2</text>
+<text class="fname" x="828.0" y="662.5">fillsz</text>
+<text class="ftype" x="870.6" y="662.5">atomic_t</text>
+<text class="fmean" x="1040.0" y="662.5">已提交、可被读走的字节数</text>
+<rect x="1319.0" y="652.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="661.5" style="fill:#000000">22</text>
+<rect x="1301.0" y="652.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1308.5" y="661.5" style="fill:#000000">2</text>
+<rect x="795" y="670" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="679.0">P3</text>
+<text class="fname" x="828.0" y="679.5">nesting</text>
+<text class="ftype" x="876.7" y="679.5">int</text>
+<text class="fmean" x="1040.0" y="679.5">正在写的写者个数</text>
+<rect x="1325.0" y="669.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="678.5" style="fill:#000000">2</text>
+<rect x="791" y="684" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="687" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="696.0">P4</text>
+<text class="fname" x="828.0" y="696.5">bufsz</text>
+<text class="ftype" x="864.5" y="696.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="696.5">缓冲区大小</text>
+<rect x="1319.0" y="686.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="695.5" style="fill:#000000">22</text>
+<rect x="1301.0" y="686.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1308.5" y="695.5" style="fill:#000000">2</text>
+<rect x="1277.0" y="686.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1287.5" y="695.5" style="fill:#FFFFFF">i1</text>
+<rect x="795" y="704" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="713.0">P5</text>
+<text class="fname" x="828.0" y="713.5">rdoff</text>
+<text class="ftype" x="864.5" y="713.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="713.5">读位置（inband 转发者）</text>
+<rect x="1319.0" y="703.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="712.5" style="fill:#000000">22</text>
+<rect x="791" y="718" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="721" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="730.0">P6</text>
+<text class="fname" x="828.0" y="730.5">wroff</text>
+<text class="ftype" x="864.5" y="730.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="730.5">写位置，下一次预留从这里开始</text>
+<rect x="1325.0" y="720.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="729.5" style="fill:#000000">2</text>
+<rect x="795" y="738" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="747.0">P7</text>
+<text class="fname" x="828.0" y="747.5">reserved</text>
+<text class="ftype" x="882.8" y="747.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="747.5">已预留、还在拷贝的字节数</text>
+<rect x="1325.0" y="737.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="746.5" style="fill:#000000">2</text>
+<rect x="791" y="752" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="755" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="764.0">P8</text>
+<text class="fname" x="828.0" y="764.5">granularity</text>
+<text class="ftype" x="901.1" y="764.5">unsigned int</text>
+<text class="fmean" x="1040.0" y="764.5">写入粒度，每次须为其整数倍</text>
+<rect x="1319.0" y="754.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="763.5" style="fill:#000000">22</text>
+<rect x="1301.0" y="754.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1308.5" y="763.5" style="fill:#000000">2</text>
+<rect x="1277.0" y="754.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1287.5" y="763.5" style="fill:#FFFFFF">i1</text>
+<rect x="795" y="772" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="781.0">P9</text>
+<text class="fname" x="828.0" y="781.5">oob_wait</text>
+<text class="ftype" x="882.8" y="781.5">struct evl_flag</text>
+<text class="fmean" x="1040.0" y="781.5">oob 读写者等缓冲时睡在这里</text>
+<rect x="1319.0" y="771.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="780.5" style="fill:#FFFFFF">22</text>
+<rect x="1301.0" y="771.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1308.5" y="780.5" style="fill:#000000">1</text>
+<rect x="1277.0" y="771.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1287.5" y="780.5" style="fill:#FFFFFF">i1</text>
+<rect x="791" y="786" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="789" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="798.0">P10</text>
+<text class="fname" x="828.0" y="798.5">inband_wait_r</text>
+<text class="ftype" x="913.3" y="798.5">wait_queue_head_t</text>
+<text class="fmean" x="1040.0" y="798.5">inband 读者等待队列</text>
+<rect x="1319.0" y="788.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="797.5" style="fill:#FFFFFF">i1</text>
+<rect x="795" y="806" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="815.0">P11</text>
+<text class="fname" x="828.0" y="815.5">inband_wait_w</text>
+<text class="ftype" x="913.3" y="815.5">wait_queue_head_t</text>
+<text class="fmean" x="1040.0" y="815.5">inband 写者等待队列</text>
+<rect x="1319.0" y="805.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="814.5" style="fill:#FFFFFF">22</text>
+<rect x="1295.0" y="805.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1305.5" y="814.5" style="fill:#FFFFFF">i1</text>
+<rect x="791" y="820" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="823" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="832.0">P12</text>
+<text class="fname" x="828.0" y="832.5">relay_work</text>
+<text class="ftype" x="895.0" y="832.5">struct evl_work</text>
+<text class="fmean" x="1040.0" y="832.5">叫 inband 来转发的"包裹"</text>
+<rect x="1325.0" y="822.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="831.5" style="fill:#000000">2</text>
+<rect x="795" y="840" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="849.0">P13</text>
+<text class="fname" x="828.0" y="849.5">lock</text>
+<text class="ftype" x="858.4" y="849.5">hard_spinlock_t</text>
+<text class="fmean" x="1040.0" y="849.5">保护缓冲指针的硬锁，oob 可用</text>
+<rect x="1325.0" y="839.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="848.5" style="fill:#000000">2</text>
+<rect x="1301.0" y="839.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1311.5" y="848.5" style="fill:#FFFFFF">i1</text>
+<rect x="791" y="854" width="554" height="17" fill="#F7F7F7"/>
+<rect x="795" y="857" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="866.0">P14</text>
+<text class="fname" x="828.0" y="866.5">wq</text>
+<text class="ftype" x="846.2" y="866.5">struct workqueue_struct *</text>
+<text class="fmean" x="1040.0" y="866.5">专用 ordered 队列</text>
+<rect x="1325.0" y="856.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1332.5" y="865.5" style="fill:#000000">2</text>
+<rect x="1301.0" y="856.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1311.5" y="865.5" style="fill:#FFFFFF">i1</text>
+<rect x="795" y="874" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="809.0" y="883.0">P15</text>
+<text class="fname" x="828.0" y="883.5">worker_lock</text>
+<text class="ftype" x="901.1" y="883.5">struct mutex</text>
+<text class="fmean" x="1040.0" y="883.5">串行化 inband 转发</text>
+<rect x="1319.0" y="873.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1329.5" y="882.5" style="fill:#000000">22</text>
+<rect x="1295.0" y="873.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1305.5" y="882.5" style="fill:#FFFFFF">i1</text>
+<rect x="790" y="914" width="556" height="44" rx="3" fill="#fff" stroke="#009E73" stroke-width="1.2" stroke-dasharray="5 3"/>
+<rect x="790" y="914" width="556" height="20" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<text class="sth" x="798.0" y="928.0">struct workqueue_struct</text>
+<text class="loc" x="962.3" y="928.0">Linux · workqueue.c</text>
+<text class="cap" x="798.0" y="951.0">Linux 内部结构，字段很多；本路径只通过 alloc/queue_work 等 API 使用，按不透明对象处理</text>
+<rect x="1380" y="150" width="556" height="125" rx="3" fill="#fff" stroke="#0072B2" stroke-width="1.2"/>
+<rect x="1380" y="150" width="556" height="34" rx="3" fill="#E3EEF7" stroke="#0072B2" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="164.0">struct evl_work</text>
+<text class="loc" x="1498.6" y="164.0">EVL · work.h:16</text>
+<text class="cap" x="1388.0" y="178.0">跨 stage 推迟执行的"包裹"</text>
+<rect x="1385" y="189" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="1399.0" y="198.0">W1</text>
+<text class="fname" x="1418.0" y="198.5">irq_work</text>
+<text class="ftype" x="1472.8" y="198.5">struct irq_work</text>
+<text class="fmean" x="1630.0" y="198.5">第一段：oob → inband 中断</text>
+<rect x="1381" y="203" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="206" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="1399.0" y="215.0">W2</text>
+<text class="fname" x="1418.0" y="215.5">wq_work</text>
+<text class="ftype" x="1466.7" y="215.5">struct work_struct</text>
+<text class="fmean" x="1630.0" y="215.5">第二段：中断 → kworker</text>
+<rect x="1385" y="223" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="1399.0" y="232.0">W3</text>
+<text class="fname" x="1418.0" y="232.5">wq</text>
+<text class="ftype" x="1436.2" y="232.5">struct workqueue_struct *</text>
+<text class="fmean" x="1630.0" y="232.5">第二段投到哪个队列</text>
+<rect x="1909.0" y="222.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="231.5" style="fill:#000000">17</text>
+<rect x="1891.0" y="222.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="231.5" style="fill:#FFFFFF">3</text>
+<rect x="1381" y="237" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="240" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="1399.0" y="249.0">W4</text>
+<text class="fname" x="1418.0" y="249.5">handler</text>
+<text class="ftype" x="1466.7" y="249.5">函数指针（联合体）</text>
+<text class="fmean" x="1630.0" y="249.5">最终执行 = relay_output_work</text>
+<rect x="1909.0" y="239.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="248.5" style="fill:#000000">20</text>
+<rect x="1885.0" y="239.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="248.5" style="fill:#FFFFFF">i3</text>
+<rect x="1385" y="257" width="28" height="11" rx="2" fill="#0072B2"/>
+<text class="fid" x="1399.0" y="266.0">W5</text>
+<text class="fname" x="1418.0" y="266.5">element</text>
+<text class="ftype" x="1466.7" y="266.5">struct evl_element *</text>
+<text class="fmean" x="1630.0" y="266.5">被保护的元素，入队前加引用</text>
+<rect x="1909.0" y="256.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="265.5" style="fill:#000000">20</text>
+<rect x="1885.0" y="256.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="265.5" style="fill:#000000">17</text>
+<rect x="1867.0" y="256.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1874.5" y="265.5" style="fill:#000000">3</text>
+<rect x="1843.0" y="256.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1853.5" y="265.5" style="fill:#FFFFFF">i3</text>
+<rect x="1380" y="297" width="556" height="91" rx="3" fill="#fff" stroke="#009E73" stroke-width="1.2"/>
+<rect x="1380" y="297" width="556" height="34" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="311.0">struct irq_work</text>
+<text class="loc" x="1498.6" y="311.0">Linux · irq_work.h</text>
+<text class="cap" x="1388.0" y="325.0">一个要在硬中断里执行的函数</text>
+<rect x="1385" y="336" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="345.0">I1</text>
+<text class="fname" x="1418.0" y="345.5">node</text>
+<text class="ftype" x="1448.4" y="345.5">struct __call_single_node</text>
+<text class="fmean" x="1630.0" y="345.5">链表节点 + 标志位</text>
+<rect x="1381" y="350" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="353" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="362.0">I2</text>
+<text class="fname" x="1418.0" y="362.5">func</text>
+<text class="ftype" x="1448.4" y="362.5">void (*)(struct irq_work *)</text>
+<text class="fmean" x="1630.0" y="362.5">回调 = __evl_do_irq_work</text>
+<rect x="1909.0" y="352.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="361.5" style="fill:#000000">16</text>
+<rect x="1885.0" y="352.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="361.5" style="fill:#FFFFFF">i4</text>
+<rect x="1385" y="370" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="379.0">I3</text>
+<text class="fname" x="1418.0" y="379.5">irqwait</text>
+<text class="ftype" x="1466.7" y="379.5">struct rcuwait</text>
+<text class="fmean" x="1630.0" y="379.5">irq_work_sync 在此等回调结束</text>
+<rect x="1909.0" y="369.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="378.5" style="fill:#FFFFFF">i4</text>
+<rect x="1380" y="410" width="556" height="108" rx="3" fill="#fff" stroke="#009E73" stroke-width="1.2"/>
+<rect x="1380" y="410" width="556" height="34" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="424.0">struct __call_single_node</text>
+<text class="loc" x="1565.8" y="424.0">Linux · smp_types.h:58</text>
+<text class="cap" x="1388.0" y="438.0">irq_work 与 smp_call_function 共用的节点</text>
+<rect x="1385" y="449" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="458.0">N1</text>
+<text class="fname" x="1418.0" y="458.5">llist.next</text>
+<text class="ftype" x="1485.0" y="458.5">struct llist_node *</text>
+<text class="fmean" x="1630.0" y="458.5">指向链表里的下一个节点</text>
+<rect x="1909.0" y="448.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="457.5" style="fill:#000000">15</text>
+<rect x="1891.0" y="448.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="457.5" style="fill:#FFFFFF">7</text>
+<rect x="1867.0" y="448.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1877.5" y="457.5" style="fill:#FFFFFF">i4</text>
+<rect x="1381" y="463" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="466" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="475.0">N2</text>
+<text class="fname" x="1418.0" y="475.5">a_flags</text>
+<text class="ftype" x="1466.7" y="475.5">atomic_t（=u_flags）</text>
+<text class="fmean" x="1630.0" y="475.5">PENDING/BUSY/LAZY/HARD_IRQ + 类型</text>
+<rect x="1909.0" y="465.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="474.5" style="fill:#000000">16</text>
+<rect x="1891.0" y="465.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="474.5" style="fill:#000000">7</text>
+<rect x="1873.0" y="465.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1880.5" y="474.5" style="fill:#000000">6</text>
+<rect x="1849.0" y="465.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1859.5" y="474.5" style="fill:#FFFFFF">i4</text>
+<rect x="1385" y="483" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="492.0">N3</text>
+<text class="fname" x="1418.0" y="492.5">src</text>
+<text class="ftype" x="1442.3" y="492.5">u16</text>
+<text class="fmean" x="1630.0" y="492.5">调试：跨 CPU 调用的来源</text>
+<rect x="1381" y="497" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="500" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="509.0">N4</text>
+<text class="fname" x="1418.0" y="509.5">dst</text>
+<text class="ftype" x="1442.3" y="509.5">u16</text>
+<text class="fmean" x="1630.0" y="509.5">调试：跨 CPU 调用的目标</text>
+<rect x="1380" y="540" width="556" height="74" rx="3" fill="#fff" stroke="#009E73" stroke-width="1.2"/>
+<rect x="1380" y="540" width="556" height="34" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="554.0">per-CPU struct llist_head ×2</text>
+<text class="loc" x="1585.9" y="554.0">Linux · irq_work.c:27</text>
+<text class="cap" x="1388.0" y="568.0">每个 CPU 两条 irq_work 链表</text>
+<rect x="1385" y="579" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="588.0">Q1</text>
+<text class="fname" x="1418.0" y="588.5">raised_list.first</text>
+<text class="ftype" x="1527.7" y="588.5">struct llist_node *</text>
+<text class="fmean" x="1642.0" y="588.5">要按门铃的链表（信箱①）</text>
+<rect x="1909.0" y="578.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="587.5" style="fill:#000000">15</text>
+<rect x="1891.0" y="578.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="587.5" style="fill:#000000">7</text>
+<rect x="1381" y="593" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="596" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="605.0">Q2</text>
+<text class="fname" x="1418.0" y="605.5">lazy_list.first</text>
+<text class="ftype" x="1515.5" y="605.5">struct llist_node *</text>
+<text class="fmean" x="1630.0" y="605.5">等 tick 执行的链表表头</text>
+<rect x="1909.0" y="595.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="604.5" style="fill:#000000">15</text>
+<rect x="1380" y="636" width="556" height="108" rx="3" fill="#fff" stroke="#009E73" stroke-width="1.2"/>
+<rect x="1380" y="636" width="556" height="34" rx="3" fill="#E1F3EC" stroke="#009E73" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="650.0">struct work_struct</text>
+<text class="loc" x="1518.8" y="650.0">Linux · workqueue_types.h</text>
+<text class="cap" x="1388.0" y="664.0">一个要在进程上下文执行的函数</text>
+<rect x="1385" y="675" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="684.0">K1</text>
+<text class="fname" x="1418.0" y="684.5">data</text>
+<text class="ftype" x="1448.4" y="684.5">atomic_long_t</text>
+<text class="fmean" x="1630.0" y="684.5">PENDING 位 + 所属 pool_workqueue</text>
+<rect x="1909.0" y="674.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="683.5" style="fill:#000000">19</text>
+<rect x="1885.0" y="674.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="683.5" style="fill:#000000">18</text>
+<rect x="1861.0" y="674.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1871.5" y="683.5" style="fill:#FFFFFF">i5</text>
+<rect x="1381" y="689" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="692" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="701.0">K2</text>
+<text class="fname" x="1418.0" y="701.5">entry</text>
+<text class="ftype" x="1454.5" y="701.5">struct list_head</text>
+<text class="fmean" x="1630.0" y="701.5">挂进 worker pool 的链表节点</text>
+<rect x="1909.0" y="691.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="700.5" style="fill:#000000">19</text>
+<rect x="1885.0" y="691.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="700.5" style="fill:#FFFFFF">18</text>
+<rect x="1861.0" y="691.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1871.5" y="700.5" style="fill:#FFFFFF">i5</text>
+<rect x="1385" y="709" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="718.0">K3</text>
+<text class="fname" x="1418.0" y="718.5">func</text>
+<text class="ftype" x="1448.4" y="718.5">work_func_t</text>
+<text class="fmean" x="1630.0" y="718.5">回调 = __evl_do_work</text>
+<rect x="1909.0" y="708.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="717.5" style="fill:#000000">19</text>
+<rect x="1885.0" y="708.5" width="21" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="717.5" style="fill:#FFFFFF">i5</text>
+<rect x="1381" y="723" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="726" width="28" height="11" rx="2" fill="#009E73"/>
+<text class="fid" x="1399.0" y="735.0">K4</text>
+<text class="fname" x="1418.0" y="735.5">lockdep_map</text>
+<text class="ftype" x="1491.1" y="735.5">struct lockdep_map</text>
+<text class="fmean" x="1630.0" y="735.5">仅 CONFIG_LOCKDEP：死锁检测</text>
+<rect x="1380" y="766" width="556" height="125" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="766" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="780.0">per-CPU struct irq_pipeline_data</text>
+<text class="loc" x="1612.7" y="780.0">Dovetail · irqstage.h:45</text>
+<text class="cap" x="1388.0" y="794.0">每个 CPU 一份的流水线总结构</text>
+<rect x="1385" y="805" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="814.0">D1</text>
+<text class="fname" x="1418.0" y="814.5">stages[2]</text>
+<text class="ftype" x="1478.9" y="814.5">struct irq_stage_data</text>
+<text class="fmean" x="1630.0" y="814.5">[0]=inband，[1]=oob</text>
+<rect x="1909.0" y="804.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="813.5" style="fill:#000000">10</text>
+<rect x="1891.0" y="804.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="813.5" style="fill:#000000">9</text>
+<rect x="1381" y="819" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="822" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="831.0">D2</text>
+<text class="fname" x="1418.0" y="831.5">tick_regs</text>
+<text class="ftype" x="1478.9" y="831.5">struct pt_regs</text>
+<text class="fmean" x="1630.0" y="831.5">tick 中断时的寄存器现场</text>
+<rect x="1385" y="839" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="848.0">D3</text>
+<text class="fname" x="1418.0" y="848.5">task_inflight</text>
+<text class="ftype" x="1503.3" y="848.5">struct task_struct *</text>
+<text class="fmean" x="1630.0" y="848.5">正在切换 stage 的任务</text>
+<rect x="1381" y="853" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="856" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="865.0">D4</text>
+<text class="fname" x="1418.0" y="865.5">rqlock_owner</text>
+<text class="ftype" x="1497.2" y="865.5">struct task_struct *</text>
+<text class="fmean" x="1630.0" y="865.5">持有运行队列锁的任务</text>
+<rect x="1385" y="873" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="882.0">D5</text>
+<text class="fname" x="1418.0" y="882.5">vcpu_notify</text>
+<text class="ftype" x="1491.1" y="882.5">struct kvm_oob_notifier *</text>
+<text class="fmean" x="1638.3" y="882.5">仅 CONFIG_KVM</text>
+<rect x="1380" y="913" width="556" height="91" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="913" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="927.0">struct irq_stage_data</text>
+<text class="loc" x="1538.9" y="927.0">Dovetail · irqstage.h</text>
+<text class="cap" x="1388.0" y="941.0">某个 CPU 上某个 stage 的数据</text>
+<rect x="1385" y="952" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="961.0">S1</text>
+<text class="fname" x="1418.0" y="961.5">log</text>
+<text class="ftype" x="1442.3" y="961.5">struct irq_log</text>
+<text class="fmean" x="1630.0" y="961.5">中断日志（信箱②）</text>
+<rect x="1381" y="966" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="969" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="978.0">S2</text>
+<text class="fname" x="1418.0" y="978.5">stage</text>
+<text class="ftype" x="1454.5" y="978.5">struct irq_stage *</text>
+<text class="fmean" x="1630.0" y="978.5">属于哪个 stage</text>
+<rect x="1385" y="986" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="995.0">S3</text>
+<text class="fname" x="1418.0" y="995.5">cpu</text>
+<text class="ftype" x="1442.3" y="995.5">int</text>
+<text class="fmean" x="1630.0" y="995.5">仅调试配置：所属 CPU</text>
+<rect x="1380" y="1026" width="556" height="125" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="1026" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="1040.0">struct irq_log + irq_event_map</text>
+<text class="loc" x="1599.3" y="1040.0">Dovetail · pipeline.c:68</text>
+<text class="cap" x="1388.0" y="1054.0">多级位图，每个中断号一位</text>
+<rect x="1385" y="1065" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1074.0">G1</text>
+<text class="fname" x="1418.0" y="1074.5">index_0</text>
+<text class="ftype" x="1466.7" y="1074.5">unsigned long</text>
+<text class="fmean" x="1630.0" y="1074.5">顶层索引：哪一大段有位被设上</text>
+<rect x="1909.0" y="1064.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1073.5" style="fill:#000000">11</text>
+<rect x="1891.0" y="1064.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="1073.5" style="fill:#FFFFFF">9</text>
+<rect x="1381" y="1079" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="1082" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1091.0">G2</text>
+<text class="fname" x="1418.0" y="1091.5">map</text>
+<text class="ftype" x="1442.3" y="1091.5">struct irq_event_map *</text>
+<text class="fmean" x="1630.0" y="1091.5">指向下层位图</text>
+<rect x="1909.0" y="1081.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1090.5" style="fill:#000000">11</text>
+<rect x="1385" y="1099" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1108.0">G3</text>
+<text class="fname" x="1418.0" y="1108.5">map-&gt;index_1[]</text>
+<text class="ftype" x="1509.4" y="1108.5">unsigned long[]</text>
+<text class="fmean" x="1630.0" y="1108.5">中间层索引（≥3 级时）</text>
+<rect x="1909.0" y="1098.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1107.5" style="fill:#000000">11</text>
+<rect x="1891.0" y="1098.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="1107.5" style="fill:#FFFFFF">9</text>
+<rect x="1381" y="1113" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="1116" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1125.0">G4</text>
+<text class="fname" x="1418.0" y="1125.5">map-&gt;index_2[]</text>
+<text class="ftype" x="1509.4" y="1125.5">unsigned long[]</text>
+<text class="fmean" x="1630.0" y="1125.5">中间层索引（4 级时）</text>
+<rect x="1385" y="1133" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1142.0">G5</text>
+<text class="fname" x="1418.0" y="1142.5">map-&gt;flat[]</text>
+<text class="ftype" x="1491.1" y="1142.5">unsigned long[]</text>
+<text class="fmean" x="1630.0" y="1142.5">每个中断号一位：待处理</text>
+<rect x="1909.0" y="1132.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1141.5" style="fill:#000000">11</text>
+<rect x="1891.0" y="1132.5" width="15" height="12" rx="2" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="1141.5" style="fill:#FFFFFF">9</text>
+<rect x="1380" y="1173" width="556" height="74" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="1173" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="1187.0">struct irq_stage</text>
+<text class="loc" x="1505.4" y="1187.0">Dovetail · irqstage.h</text>
+<text class="cap" x="1388.0" y="1201.0">全局只有两个：inband_stage / oob_stage</text>
+<rect x="1385" y="1212" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1221.0">T1</text>
+<text class="fname" x="1418.0" y="1221.5">index</text>
+<text class="ftype" x="1454.5" y="1221.5">int</text>
+<text class="fmean" x="1630.0" y="1221.5">0=inband，1=oob，用来索引 stages[]</text>
+<rect x="1915.0" y="1211.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1922.5" y="1220.5" style="fill:#000000">9</text>
+<rect x="1381" y="1226" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="1229" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1238.0">T2</text>
+<text class="fname" x="1418.0" y="1238.5">name</text>
+<text class="ftype" x="1448.4" y="1238.5">const char *</text>
+<text class="fmean" x="1630.0" y="1238.5">名字</text>
+<rect x="1380" y="1269" width="556" height="91" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="1269" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="1283.0">其他状态</text>
+<text class="loc" x="1442.0" y="1283.0">Dovetail</text>
+<text class="cap" x="1388.0" y="1297.0">stage / 中断开关</text>
+<rect x="1385" y="1308" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1317.0">C1</text>
+<text class="fname" x="1418.0" y="1317.5">current-&gt;stall_bits</text>
+<text class="ftype" x="1539.9" y="1317.5">unsigned long</text>
+<text class="fmean" x="1630.0" y="1317.5">INBAND/OOB_STALL_BIT：虚拟关中断</text>
+<rect x="1909.0" y="1307.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1316.5" style="fill:#000000">15</text>
+<rect x="1885.0" y="1307.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="1316.5" style="fill:#000000">10</text>
+<rect x="1867.0" y="1307.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1874.5" y="1316.5" style="fill:#000000">8</text>
+<rect x="1381" y="1322" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="1325" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1334.0">C2</text>
+<text class="fname" x="1418.0" y="1334.5">preempt_count STAGE 位</text>
+<text class="ftype" x="1556.0" y="1334.5">per-CPU</text>
+<text class="fmean" x="1630.0" y="1334.5">当前在哪个 stage（running_inband）</text>
+<rect x="1909.0" y="1324.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1333.5" style="fill:#000000">10</text>
+<rect x="1891.0" y="1324.5" width="15" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1898.5" y="1333.5" style="fill:#000000">8</text>
+<rect x="1385" y="1342" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1351.0">C3</text>
+<text class="fname" x="1418.0" y="1351.5">CPU 的 IF 标志</text>
+<text class="ftype" x="1502.8" y="1351.5">硬件</text>
+<text class="fmean" x="1630.0" y="1351.5">真正的硬中断开关</text>
+<rect x="1909.0" y="1341.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1350.5" style="fill:#000000">12</text>
+<rect x="1885.0" y="1341.5" width="21" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1895.5" y="1350.5" style="fill:#000000">10</text>
+<rect x="1867.0" y="1341.5" width="15" height="12" rx="2" fill="#F2C14E" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1874.5" y="1350.5" style="fill:#000000">8</text>
+<rect x="1380" y="1382" width="556" height="91" rx="3" fill="#fff" stroke="#E69F00" stroke-width="1.2"/>
+<rect x="1380" y="1382" width="556" height="34" rx="3" fill="#FCEFD7" stroke="#E69F00" stroke-width="1.2"/>
+<text class="sth" x="1388.0" y="1396.0">struct irqaction inband_irq_work</text>
+<text class="loc" x="1612.7" y="1396.0">Dovetail · pipeline.c:1709</text>
+<text class="cap" x="1388.0" y="1410.0">inband_work_sirq 上绑定的动作（其余字段默认）</text>
+<rect x="1385" y="1421" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1430.0">A1</text>
+<text class="fname" x="1418.0" y="1430.5">handler</text>
+<text class="ftype" x="1466.7" y="1430.5">irq_handler_t</text>
+<text class="fmean" x="1630.0" y="1430.5">= inband_work_interrupt</text>
+<rect x="1909.0" y="1420.5" width="21" height="12" rx="2" fill="#FFFFFF" stroke="#333333" stroke-width="0.8"/>
+<text class="mk" x="1919.5" y="1429.5" style="fill:#000000">12</text>
+<rect x="1381" y="1435" width="554" height="17" fill="#F7F7F7"/>
+<rect x="1385" y="1438" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1447.0">A2</text>
+<text class="fname" x="1418.0" y="1447.5">name</text>
+<text class="ftype" x="1448.4" y="1447.5">const char *</text>
+<text class="fmean" x="1630.0" y="1447.5">"in-band irq work"</text>
+<rect x="1385" y="1455" width="28" height="11" rx="2" fill="#E69F00"/>
+<text class="fid" x="1399.0" y="1464.0">A3</text>
+<text class="fname" x="1418.0" y="1464.5">flags</text>
+<text class="ftype" x="1454.5" y="1464.5">unsigned int</text>
+<text class="fmean" x="1630.0" y="1464.5">IRQF_NO_THREAD：必须在硬中断执行</text>
+<path class="emb" d="M790,211.5 L776,211.5 L776,607 L790,607"/>
+<path class="emb" d="M790,245.5 L768,245.5 L768,307 L790,307"/>
+<path class="emb" d="M790,862.5 L776,862.5 L776,924 L790,924"/>
+<path class="emb" d="M1346,828.5 L1363,828.5 L1363,160 L1380,160"/>
+<path class="emb" d="M1936,194.5 L1946,194.5 L1946,307 L1936,307"/>
+<path class="emb" d="M1936,211.5 L1956,211.5 L1956,646 L1936,646"/>
+<path class="emb" d="M1936,341.5 L1946,341.5 L1946,420 L1936,420"/>
+<path class="emb" d="M1936,810.5 L1946,810.5 L1946,923 L1936,923"/>
+<path class="emb" d="M1936,957.5 L1956,957.5 L1956,1036 L1936,1036"/>
+<path class="emb" d="M1936,974.5 L1946,974.5 L1946,1183 L1936,1183"/>
+<path class="lnk" d="M1380,584 L1368,584 L1368,454 L1380,454"/>
+<text class="capr" x="1364.0" y="523.0" transform="rotate(-90 1364.0 523.0)">first/next 串成链表</text>
+</svg>
