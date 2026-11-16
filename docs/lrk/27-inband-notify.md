@@ -6,6 +6,8 @@
 2. 现在的通知中继是怎么工作的，"多次 post 只投递一次"会不会让正常的 Linux 出错；
 3. doc 25 §7.1 说的"inband 等待路径把 Linux 锁套在 Z 硬锁外面"到底是什么情况。
 
+> **更新（2026-11-13）：** 当前实现的完整说明见 [29-notify-relay.md](29-notify-relay.md)。本文 §5 描述的是那之前的版本：唤醒方还用 `waitqueue_active()` 读 z 的等待队列，done 闸门还接收 z 交回的记录地址。其余各节仍然有效。
+
 代码位置写法：`orig:` 指原版只读副本 `~/xenoami/linux-evl-orig`（上游 `v6.12.y-cip-evl-rebase`），`now:` 指当前的 `~/xenoami/linux-evl`。
 
 ---

@@ -122,3 +122,27 @@
 - 写 [25-monitor-observable.md](25-monitor-observable.md)：两个组件的功能、交集 X1–X11、修改和不变式。新发现：inband 等待路径（`__wait_monitor_inband`、`pull_from_inband`）先拿 Linux 锁再拿可信硬锁，是混合代码；建议改为"门 + 标准等待写法"，作为下一步。
 - 写 [26-zz-method.md](26-zz-method.md)：从安全目的出发，结合例子总结 Z/z 的思想和方法，可单独阅读。
 - 写 [27-inband-notify.md](27-inband-notify.md)：通知机制单独成文。核对了原版全部 `irq_work` 调用点；确认中继的合并语义与 irq_work 相同；记下 SIGDEBUG 原因码由"保留第一个"变为"保留最后一个"的差异；锁嵌套问题 stax 的 `claim_stax_from_inband` 也有（doc 25 只列了 monitor、observable）。
+
+## 2026-11-12 通知机制文档、thread.c
+
+- 写 [27-inband-notify.md](27-inband-notify.md) 后，又讨论了 irq_work 的 claim、PENDING/BUSY、P2 内核线程启动等细节（问答，未入文档）。
+- 写 [28-thread.md](28-thread.md) 并实现：sysfs 7 个读接口改为"Z 门返回值、z 格式化"；`pin_to_initial_cpu` 约束 `task_cpu()`；`evl_killall` 的 printk 移出 `thread_list_lock`。回归 74/78 与基线相同；sysfs 并发读取 4 万多次无告警。
+- 待用户决定：z 发起的控制请求（inband ioctl 改调度、demote、suspend，killall）是否放行（doc 28 §5.2 三个方案）；原版 bug B4（GET_STATE 的 state 填成 CPU 号）是否修。
+- 改动尚未提交。
+
+## 2026-11-13 通知中继收尾、EVL 线程控制权限
+
+- 问答：irq_work 处理函数仍在关中断下运行，它解决的是"不能拿锁"而不是"关中断"；需要睡眠的事再经 workqueue 跳一次（`evl_call_inband`），这一跳在 z 侧，不用改。
+- 通知中继：monitor、observable 去掉 `waitqueue_active()`，无条件 post，Z 不再读 z 的等待队列；take 闸门复制 `fn`；done 闸门不带参数，Z 用 per-CPU `evl_notify_taken` 记录正在投递的记录，z 手里不再有 Z 的地址。写 [29-notify-relay.md](29-notify-relay.md)，doc 27 加了指向 29 的说明。
+- 用户确定安全假设：EVL 线程（实时任务）都可信，其他任务不可信；EVL 线程之间互相控制允许，普通线程不能影响 EVL 线程的运行。即 doc 28 §5.2 方案 ②。实现 `evl_may_control()`，改 8 处入口，写 [30-control-policy.md](30-control-policy.md)。
+- libevl：`tests/sched-tp-accuracy.c` 的 main 在安装 TP 调度表前先 attach（新规则下非 EVL 线程不能改调度表）。
+- 测试：QEMU 回归 74/78，与基线相同；权限测试（普通线程 / EVL 线程各一轮）全部符合预期；另编打开 TP/QUOTA 的内核，`sched-tp-accuracy`、`sched-tp-overrun` 3/3 通过，`sched-quota-accuracy` 精度 108% 左右失败（与权限无关，未做基线对照）。
+- 待定：谁能 attach（信任边界）；Linux 自己的信号、ptrace、亲和性等操作 EVL 拦不住；`latmus -r` 需要 libevl 先 attach 再 reset；doc 28 的 B4、B5。
+- 改动尚未提交。
+
+## 2026-11-16 交接收尾
+
+- 上述内核改动已整理为四个提交：`2495805ce5b4`（通知中继）、`789a2167180f`（xbuf / proxy 拆分）、`7b70298bd41d`（线程路径截断）、`458f163d4386`（控制权限）；libevl 配套提交为 `2f2bc11e694f`（proxy 用户接口）、`07eeff23e0b8`（TP 测试先 attach）。六个提交均已推送到各自 GitHub 远端，沿用既有的内核 `evl-lkl` 和 libevl `master` 分支。
+- 补齐 [逐提交说明与配套索引](commits/README.md)，核对通知中继说明中的指针、生命周期和测试配置表述；收录 doc 28–30 及 [接手理解报告](31-project-handover-2026-11-16.md)。历史日志中的“尚未提交”描述当时状态，以本条记录为后续进展。
+- 本次父仓库提交将 `linux-evl` 指针从 `daed79c1cd9b` 更新到 `458f163d4386`，`libevl` 从 `db33f300adcf` 更新到 `07eeff23e0b8`；原版对照内核和 LKL 指针保持不变。libevl 工作区 `.gitignore` 的本地 `.cache` 条目保留，不包含在这些提交中。
+- 本次没有修改实现，也没有重跑构建或 QEMU 测试；74/78、TP 和 quota 的结果均为历史记录。交接检查包括文档相对链接、代码围栏、差异空白检查、提交顺序及配套版本核对。安全隔离、可信句柄表及既有待办仍未完成。
